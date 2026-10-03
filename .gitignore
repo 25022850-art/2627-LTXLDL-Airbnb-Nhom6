@@ -1,0 +1,34 @@
+# Bỏ qua dữ liệu thô 
+data/raw/
+
+# Bỏ qua môi trường ảo Python
+.venv/
+venv/
+env/
+/env/
+/.venv/
+
+# Bỏ qua file chứa biến môi trường và khóa API 
+.env
+*.key
+*.pem
+*_credentials.json
+*_key.json
+
+# Bỏ qua file cache và file biên dịch 
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Bỏ qua file của công cụ IDE / Editor
+.vscode/
+.idea/
+*.swp
+
+# Bỏ qua file hệ thống sinh ra (OS-specific)
+.DS_Store
+Thumbs.db
+
+# Bỏ qua file logs
+*.log
