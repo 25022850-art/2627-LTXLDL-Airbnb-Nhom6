@@ -37,10 +37,11 @@ python run_pipeline.py --config configs/<city>.yaml --sample
 ```
 
 *Chạy riêng từng bước:*
-
+```bash
 python -m src.download  --config configs/<city>.yaml
 python -m src.qa        --config configs/<city>.yaml
 python -m src.kpi       --config configs/<city>.yaml
 python -m src.llm       --config configs/<city>.yaml
 python -m src.evaluate  --config configs/<city>.yaml
 python -m src.viz       --config configs/<city>.yaml
+```
