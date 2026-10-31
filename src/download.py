@@ -1,5 +1,4 @@
 import yaml
-import os
 import requests
 import pandas as pd
 from pathlib import Path
