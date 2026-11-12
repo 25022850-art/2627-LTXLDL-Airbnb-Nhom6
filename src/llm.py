@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel, Field, ValidationError
 from google import genai
+import json
+import yaml
 
 load_dotenv()
 
@@ -22,8 +24,13 @@ PROMPT_TEMPLATE = (
     'đánh giá không có nội dung thì trả sentiment "mixed", '
     'accessibility "Not mentioned" và noise "Not mentioned" '
     "và các danh sách rỗng.\n\n"
+    "Hãy chỉ trả về duy nhất một object JSON hợp lệ chứa 3 key: "
+    "'general_sentiment', 'accessibility', và 'noise'. "
+    "Không kèm theo bất kỳ văn bản giải thích nào khác.\n\n"
     "Review: {text}"
 )
+DINH_DANG = {"type": "text", "mime_type": "application/json",
+             "schema": ReviewInfo.model_json_schema()}
 
 def get_api_key():
     try:
@@ -57,15 +64,61 @@ def get_cache_path(config):
 
 def get_llm_cache(cache_path):
     try:
+        if cache_path.exists():
+            return pd.read_json(cache_path, lines=True) 
+        else : 
+            return pd.DataFrame(columns=[
+                "review_text", 
+                "general_sentiment", 
+                "accessibility", 
+                "noise"
+            ])
+    except Exception as e:
+        raise Exception(f"Có lỗi khi đọc file cache tại {cache_path}: {e}")
 
-def call_llm(review):
+def call_llm(review, model, client):
+    try : 
+        prompt = PROMPT_TEMPLATE.format(text=review)
+        tra_loi = client.interactions.create(
+            model=model,
+            input=prompt,
+            response_format=DINH_DANG
+        )
 
+        result_text = tra_loi.output_text
+        # result_text = result_text.replace("```json", "").replace("```", "").strip()
+        info = ReviewInfo.model_validate_json(result_text)
+        return info.model_dump()
+    except Exception as e:
+        raise Exception(f"Lỗi khi gọi LLM hoặc parse JSON: {e}")
+        
 
 def llm(rv, config_path):
     with open(config_path, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
-    cache_path = get_cache_path(config)
     
+    cache_path = get_cache_path(config)
     model = get_model(config)
     client = create_client(config)
 
+    cache_llm = get_llm_cache(cache_path)
+    if not cache_llm.empty and 'review_text' in cache_llm.columns:
+        matched_row = cache_llm[cache_llm['review_text'] == rv]
+        if not matched_row.empty:
+            result_dict = matched_row.iloc[0].to_dict() #chi lay 1 dong
+            result_dict.pop('review_text', None)
+            return result_dict
+        
+    result_dict = call_llm(rv, client, model)
+    cache_record = result_dict.copy()
+    cache_record['review_text'] = rv
+
+    new_row_df = pd.DataFrame([cache_record])
+    new_row_df.to_json(
+        cache_path, 
+        orient='records', # dinh dang la JSONL
+        lines=True, 
+        mode='a', 
+    )
+
+    return result_dict
