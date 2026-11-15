@@ -87,7 +87,7 @@ def get_llm_cache(cache_path):
             return pd.read_json(cache_path, lines=True) 
         else : 
             return pd.DataFrame(columns=[
-                "review_text", 
+                "comments", 
                 "general_sentiment", 
                 "accessibility", 
                 "noise"
