@@ -1,17 +1,17 @@
 import pandas as pd
 import re
 
-PAT_SENTIMENT_GOOD = r"amazing|excellent|wonderful|fantastic|perfect|great|lovely|awesome|beautiful|superb|outstanding|fabulous|incredible|brilliant|exceptional|enjoyed|loved|pleasant|delightful|recommend|happy|satisfied|would stay again|had a great time|loved our stay|exceeded expectations|everything was perfect"
-PAT_SENTIMENT_BAD = r"terrible|awful|horrible|bad|poor|worst|disappointing|disappointed|unpleasant|unacceptable|frustrating|uncomfortable|dirty|regret|problem|issues|complaint|avoid|rude|would not recommend|never again|not worth it|wouldn't stay again|did not enjoy"
-PAT_SENTIMENT_NEUTRAL = r"okay|ok|average|fine|fair|acceptable|normal|ordinary|nothing special|so-so|could be better|as expected"
+PAT_SENTIMENT_GOOD = r"\b(?:amazing|excellent|wonderful|fantastic|perfect|great|lovely|awesome|beautiful|superb|outstanding|fabulous|incredible|brilliant|exceptional|enjoyed|loved|pleasant|delightful|recommend|happy|satisfied|would stay again|had a great time|loved our stay|exceeded expectations|everything was perfect)\b"
+PAT_SENTIMENT_BAD = r"\b(?:terrible|awful|horrible|bad|poor|worst|disappointing|disappointed|unpleasant|unacceptable|frustrating|uncomfortable|dirty|regret|problem|issues|complaint|avoid|rude|would not recommend|never again|not worth it|wouldn't stay again|did not enjoy)\b"
+PAT_SENTIMENT_NEUTRAL = r"\b(?:okay|ok|average|fine|fair|acceptable|normal|ordinary|nothing special|so-so|could be better|as expected)\b"
 
-PAT_ACCESS_GOOD = r"central|city center|city centre|well located|convenient|accessible|walkable|walking distance|close to|near|nearby|easy access|public transport|metro nearby|heart of|short walk|minutes walk|easy to reach|well connected"
-PAT_ACCESS_BAD = r"far from|far away|remote|isolated|inconvenient|difficult to reach|hard to reach|long walk|too far|not central|not accessible|difficult access|far from metro|far from center"
-PAT_ACCESS_NEUTRAL = r"location was okay|location was fine|reasonable location|location was acceptable|not too far|not too close|moderate distance|location was alright"
+PAT_ACCESS_GOOD = r"\b(?:central|city center|city centre|well located|convenient|accessible|walkable|walking distance|close to|near|nearby|easy access|public transport|metro nearby|heart of|short walk|minutes walk|easy to reach|well connected)\b"
+PAT_ACCESS_BAD = r"\b(?:far from|far away|remote|isolated|inconvenient|difficult to reach|hard to reach|long walk|too far|not central|not accessible|difficult access|far from metro|far from center)\b"
+PAT_ACCESS_NEUTRAL = r"\b(?:location was okay|location was fine|reasonable location|location was acceptable|not too far|not too close|moderate distance|location was alright)\b"
 
-PAT_QUIET = r"quiet|very quiet|peaceful|silent|tranquil|calm|soundproof|no noise|no disturbance|not noisy|quiet neighborhood|peaceful nights|no street noise|well insulated|couldn't hear anything"
-PAT_NOISY = r"noisy|very noisy|too noisy|loud|very loud|traffic noise|street noise|road noise|construction noise|loud music|disturbed sleep|noise at night|loud neighbors|noise problem|unbearable noise"
-PAT_NOISE_NEUTRAL = r"some noise|a little noisy|slightly noisy|bit noisy|minor noise|not too noisy|manageable noise|tolerable noise|noise was okay|noise was fine|noise was acceptable|didn't mind the noise"
+PAT_QUIET = r"\b(?:quiet|very quiet|peaceful|silent|tranquil|calm|soundproof|no noise|no disturbance|not noisy|quiet neighborhood|peaceful nights|no street noise|well insulated|couldn't hear anything)\b"
+PAT_NOISY = r"\b(?:noisy|very noisy|too noisy|loud|very loud|traffic noise|street noise|road noise|construction noise|loud music|disturbed sleep|noise at night|loud neighbors|noise problem|unbearable noise)\b"
+PAT_NOISE_NEUTRAL = r"\b(?:some noise|a little noisy|slightly noisy|bit noisy|minor noise|not too noisy|manageable noise|tolerable noise|noise was okay|noise was fine|noise was acceptable|didn't mind the noise)\b"
 
 EVAL_DICT = {
     "general_sentiment": eval_sentiment,
