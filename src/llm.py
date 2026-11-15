@@ -18,26 +18,36 @@ class ReviewInfo(BaseModel):
     accessibility: Literal["Highly accessible", "Poor access", "Neutral", "Not mentioned"]
     noise: Literal["Quiet", "Noisy", "Acceptable", "Not mentioned"]
     
-PROMPT_TEMPLATE = (
-    "Bạn là công cụ trích xuất thông tin từ đánh giá về chỗ ở.\n"
-    "Phân tích đánh giá sau và điền đúng schema. "
-    "Chỉ gán khía cạnh THỰC SỰ được nhắc đến;\n"
-    'đánh giá không có nội dung thì trả sentiment "Mixed", '
-    'accessibility "Not mentioned" và noise "Not mentioned" '
-    "và các danh sách rỗng.\n\n"
-    "Hãy chỉ trả về duy nhất một object JSON hợp lệ chứa 3 key: "
-    "'general_sentiment', 'accessibility', và 'noise'. "
-    "Lưu ý với khía cạnh general sentiment, gán Mixed khi đánh giá khen trộn lẫn yếu tố chê, chỉ gán Positive khi đánh giá khen cực áp đảo đánh giá chê hoặc chỉ khen"
-    "Đối với cả 2 khía cạnh âm thanh và địa điểm, gán nhãn Neutral khi gặp cách tính từ mang tính vừa phải (ok, enough)"
-    "Lưu ý về khía cạnh accessibility : nếu không đề cập đến khoảng cách tới các tiện ích thì gán nhãn 'Not mentioned'"
-    "Lưu ý về khía cạnh âm thanh: Chỉ khi tiếng ồn ảnh hưởng lớn đến mức không chịu được mới gán nhãn noisy."
-    "Nếu có đề cập đến tiếng ồn nhưng vẫn chịu đựng được, hoặc âm thanh ở mức bình thường, hãy gán acceptable."
-    "Tuyệt đối chỉ gán nhãn quiet khi khách CỐ TÌNH NHẤN MẠNH và KHEN NGỢI sự yên tĩnh (ví dụ: 'very quiet', 'no noise at all')."
-    "Không được tự suy diễn quiet nếu khách chỉ bảo tiếng ồn là chấp nhận được,"
-    "không tự suy diễn quiet khi không đề cập đến âm thanh"
-    "Không kèm theo bất kỳ văn bản giải thích nào khác.\n\n"
-    "Review: {text}"
-)
+PROMPT_TEMPLATE = """Bạn là một chuyên gia phân tích dữ liệu đánh giá chỗ ở. Nhiệm vụ của bạn là trích xuất thông tin và phân loại cảm xúc theo đúng định dạng JSON.
+
+### ĐỊNH DẠNG ĐẦU RA BẮT BUỘC (Chỉ trả về JSON, không giải thích thêm):
+{{
+  "general_sentiment": "Positive" | "Negative" | "Mixed",
+  "accessibility": "Highly accessible" | "Poor access" | "Neutral" | "Not mentioned",
+  "noise": "Noisy" | "Acceptable" | "Quiet" | "Not mentioned"
+}}
+
+### QUY TẮC GÁN NHÃN CHI TIẾT:
+
+1. general_sentiment (Cảm xúc tổng thể):
+- "Mixed": Gán khi có cả khen và chê trong cùng một đánh giá, số lượng chê đáng kể hoặc khi đánh giá không rõ ràng, mâu thuẫn.
+- "Positive": CHỈ gán khi đánh giá hoàn toàn là khen ngợi hoặc khen ngợi chiếm ưu thế rõ ràng.
+- Ngoại lệ: Đánh giá trống/không có nội dung chữ -> gán "Mixed".
+
+2. accessibility (Vị trí & Đi lại):
+- "Neutral" ( ƯU TIÊN KIỂM TRA TRƯỚC, CHỈ LÀ KIỂM TRA TRƯỚC, KHÔNG GÁN NEUTRAL MÀ KHÔNG SUY NGHĨ KĨ): BẮT BUỘC gán nhãn này nếu đánh giá dùng các cụm từ thể hiện mức độ vừa phải như: "central enough", "location is ok", "good enough", "fine", "not bad".
+- "Highly accessible": CHỈ gán khi có thông tin CỤ THỂ về sự thuận tiện đi lại (khoảng cách, thời gian đi bộ, gần bến xe/ga tàu/tiện ích) HOẶC dùng từ "central/center/centre" kết hợp với location (chỉ khi không có từ enough hoặc các tính từ trong Neutral). Gán khi review nhấn mạnh khoảng cách gần như "near to", "walking distance", "close to" các địa điểm.
+- "Not mentioned": BẮT BUỘC gán nhãn này nếu khách chỉ khen vị trí chung chung bằng tính từ mạnh (ví dụ: "perfect location", "wonderful location", "great location") mà KHÔNG nhắc đến khoảng cách đi lại. Không tự suy diễn. Có thể gán nhãn Highly accessible nếu sau tính từ mạnh có thông tin về khoảng cách tới các tiện ích ("ví dụ :perfect location to visit the museum" -> Highly accessible).Nếu chỉ nói chung chung là "perfect location to visit Porto" thì vẫn là Neutral, chỉ khi là một tiện ích cụ thể (ví dụ: "museum", "park", "restaurant", "store") mới gán Highly accessible.
+
+
+3. noise (Âm thanh & Tiếng ồn):
+- "Quiet": ( ƯU TIÊN KIỂM TRA TRƯỚC, CHỈ LÀ KIỂM TRA TRƯỚC, KHÔNG GÁN QUIET MÀ KHÔNG SUY NGHĨ KĨ ) CHỈ gán khi khách nhấn mạnh sự yên tĩnh về mặt âm thanh (ví dụ: "quiet", "no noise at all"). "Quite" có thể hiểu là viết sai chính tả cho quiet và gán nhãn "Quiet".
+- "Not mentioned": BẮT BUỘC gán nhãn này với các từ chỉ không gian/bầu không khí chung chung như "peaceful", "calm", "relaxing" (chúng mô tả cảm giác thư thái, KHÔNG ĐỦ để kết luận về âm thanh). Không tự suy diễn khi không nhắc trực tiếp đến âm thanh.
+- "Acceptable": Gán khi có tiếng ồn nhưng ở mức chịu đựng được ("not too loud", "acceptable noise", "little noisy").
+- "Noisy": Chỉ gán khi tiếng ồn lớn, ảnh hưởng tiêu cực mạnh đến trải nghiệm.
+
+Review: {text}"""
+
 DINH_DANG = {"type": "text", "mime_type": "application/json",
              "schema": ReviewInfo.model_json_schema()}
 
@@ -135,3 +145,33 @@ def llm(rv, config_path):
     result = result.apply(pd.Series)
 
     return result
+
+def audit_llm_predictions(df):
+    flags = []
+    for idx, row in df.iterrows():
+        text = str(row["comments"]).strip()
+        word_count = len(text.split())
+        gen, acc, noise = row["general_sentiment"], row["accessibility"], row["noise"]
+        row_flags = []
+
+        # 1. Rỗng nhưng vẫn gán nhãn khía cạnh
+        if word_count == 0 and (acc != "Not mentioned" or noise != "Not mentioned"):
+            row_flags.append("EMPTY_TEXT_WITH_ASPECT")
+
+        # 2. Mâu thuẫn cực tính chéo
+        if gen == "Positive" and ("Negative" in [acc, noise]):
+            row_flags.append("CONFLICT_POS_GEN_WITH_NEG_ASPECT")
+        if gen == "Negative" and ("Positive" in [acc, noise]):
+            row_flags.append("CONFLICT_NEG_GEN_WITH_POS_ASPECT")
+        if {acc, noise} == {"Positive", "Negative"} and gen != "Mixed":
+            row_flags.append("MISSING_MIXED_SENTIMENT")
+
+        # 3. Câu ngắn (<= 5 từ) nhưng bắt cả 2 khía cạnh
+        mentioned_count = sum(x != "Not mentioned" for x in [acc, noise])
+        if 0 < word_count <= 5 and mentioned_count > 1:
+            row_flags.append("SHORT_TEXT_MULTI_ASPECT")
+
+        flags.append(", ".join(row_flags) if row_flags else "OK")
+    
+    df["audit_flag"] = flags
+    return df
