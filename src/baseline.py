@@ -1,5 +1,6 @@
 import pandas as pd
 import re
+import yaml
 
 PAT_SENTIMENT_GOOD = r"\b(?:amazing|excellent|wonderful|fantastic|perfect|great|lovely|awesome|beautiful|superb|outstanding|fabulous|incredible|brilliant|exceptional|enjoyed|loved|pleasant|delightful|recommend|happy|satisfied|would stay again|had a great time|loved our stay|exceeded expectations|everything was perfect)\b"
 PAT_SENTIMENT_BAD = r"\b(?:terrible|awful|horrible|bad|poor|worst|disappointing|disappointed|unpleasant|unacceptable|frustrating|uncomfortable|dirty|regret|problem|issues|complaint|avoid|rude|would not recommend|never again|not worth it|wouldn't stay again|did not enjoy)\b"
@@ -13,12 +14,6 @@ PAT_QUIET = r"\b(?:quiet|very quiet|peaceful|silent|tranquil|calm|soundproof|no 
 PAT_NOISY = r"\b(?:noisy|very noisy|too noisy|loud|very loud|traffic noise|street noise|road noise|construction noise|loud music|disturbed sleep|noise at night|loud neighbors|noise problem|unbearable noise)\b"
 PAT_NOISE_NEUTRAL = r"\b(?:some noise|a little noisy|slightly noisy|bit noisy|minor noise|not too noisy|manageable noise|tolerable noise|noise was okay|noise was fine|noise was acceptable|didn't mind the noise)\b"
 
-EVAL_DICT = {
-    "general_sentiment": eval_sentiment,
-    "accessibility": eval_accessibility,
-    "noise": eval_noise
-}
-
 def eval_sentiment(rv):
     rv = rv.copy()
     sentiment_good = rv["comments"].str.findall(PAT_SENTIMENT_GOOD, flags=re.I)
@@ -30,10 +25,10 @@ def eval_sentiment(rv):
     # nums_of_neutral_sentiment = sentiment_neutral.map(lambda x: len(x))
     sentiment_score = nums_of_good_sentiment - nums_of_bad_sentiment
 
-    rv["sentiment"] = ""
-    rv.loc[sentiment_score > 0, "sentiment"] = "Positive"
-    rv.loc[sentiment_score < 0, "sentiment"] = "Negitive"
-    rv.loc[sentiment_score == 0, "sentiment"] = "Mixed" 
+    rv["general_sentiment"] = ""
+    rv.loc[sentiment_score > 0, "general_sentiment"] = "Positive"
+    rv.loc[sentiment_score < 0, "general_sentiment"] = "Negitive"
+    rv.loc[sentiment_score == 0, "general_sentiment"] = "Mixed" 
     return rv
 
 def eval_accessibility(rv):
@@ -63,8 +58,15 @@ def eval_noise(rv):
 def get_aspect(config):
     try:
         ASPECTS = config.get("llm").get("aspects")
+        return ASPECTS
     except Exception:
         raise Exception("Có lỗi khi lấy 'aspects' ở mục 'llm' từ file config")
+
+EVAL_DICT = {
+    "general_sentiment": eval_sentiment,
+    "accessibility": eval_accessibility,
+    "noise": eval_noise
+}
 
 def baseline(rv_to_label, config_path): 
     with open(config_path, 'r', encoding='utf-8') as f:
@@ -74,7 +76,7 @@ def baseline(rv_to_label, config_path):
     ASPECTS = get_aspect(config)
 
     for aspect in ASPECTS:
-        if aspect not in ASPECTS.keys():
+        if aspect not in ASPECTS:
             raise Exception(f"Chưa có hàm đánh giá aspect {aspect}")
         else:
             rv = EVAL_DICT[aspect](rv)
