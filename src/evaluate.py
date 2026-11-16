@@ -29,9 +29,10 @@ def eval_sentiment(preds, nhan_tay):
     else:
         F1_negative = 2 * TP_negative.sum() / (2 * TP_negative.sum() + FP_negative.sum() + FN_negative.sum())
 
-    if F1_positive is None or F1_mixed is None or F1_negative is None:
+    f1 = pd.Series([F1_positive, F1_mixed, F1_negative])
+    if f1.isna().sum() == len(f1):
         return None
-    return (F1_positive + F1_mixed + F1_negative) / 3
+    return f1.mean()
 
 def eval_accessibility(preds, nhan_tay):
     TP_highly_accessible = (preds["accessibility"]=="Highly accessible") & (nhan_tay["accessibility"]=="Highly accessible")
@@ -70,9 +71,10 @@ def eval_accessibility(preds, nhan_tay):
     else:
         F1_not_mentioned = 2 * TP_not_mentioned.sum() / (2 * TP_not_mentioned.sum() + FP_not_mentioned.sum() + FN_not_mentioned.sum())
 
-    if F1_highly_accessible is None or F1_poor_access is None or F1_neutral is None or F1_not_mentioned is None:
+    f1 = pd.Series([F1_highly_accessible, F1_poor_access, F1_neutral, F1_not_mentioned])
+    if f1.isna().sum() == len(f1):
         return None
-    return (F1_highly_accessible + F1_poor_access + F1_neutral + F1_not_mentioned) / 4
+    return f1.mean()
 
 
 def eval_noise(preds, nhan_tay):
@@ -112,9 +114,11 @@ def eval_noise(preds, nhan_tay):
     else:
         F1_not_mentioned = 2 * TP_not_mentioned.sum() / (2 * TP_not_mentioned.sum() + FP_not_mentioned.sum() + FN_not_mentioned.sum())
 
-    if F1_quiet is None or F1_noisy is None or F1_acceptable is None or F1_not_mentioned is None:
+    f1 = pd.Series([F1_quiet, F1_noisy, F1_acceptable, F1_not_mentioned])
+    if f1.isna().sum() == len(f1):
         return None
-    return (F1_quiet + F1_noisy + F1_acceptable + F1_not_mentioned) / 4
+    return f1.mean()
+    
 
 def evaluate(preds, nhan_tay):
     f1_sentiment = eval_sentiment(preds, nhan_tay)
