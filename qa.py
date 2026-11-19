@@ -14,6 +14,87 @@ MIN_NIGHTS_UPPER_BOUND = 365
 EXCHANGE_RATE = 0.91
 
 
+def build_qa_report(flags, ghi_chu, path=None):
+    rows = [
+        {"quy_tac": rule, "so_dong": int(flags[rule].sum()), "ghi_chu": note} for rule, note in ghi_chu.items() 
+        if rule in flags.columns
+    ]
+    report = pd.DataFrame(rows, columns=["quy_tac", "so_dong", "ghi_chu"])
+    if path:
+        report.to_csv(path, index=False, encoding="utf-8")
+    return report
+
+
+GHI_CHU_LISTINGS = {
+    "listing_id_invalid": "id trống",
+    "listing_duplicate_within": "id lặp lại (tính từ lần xuất hiện thứ 2)",
+    "listing_duplicate_conflict": "cùng id nhưng nội dung dòng khác nhau (xung đột)",
+    "host_id_missing": "thiếu host_id",
+    "min_nights_abnormal": f"minimum_nights > {MIN_NIGHTS_UPPER_BOUND}; loại khỏi bảng sau QA (do dòng này cũng có giá NaN, và số reviews_ltm bằng 0)",
+    "min_nights_greater_than_max": "minimum_nights > maximum_nights",
+    "number_of_reviews_ltm_missing": "ô trống/thiếu",
+    "number_of_reviews_ltm_invalid": "không phải số nguyên >= 0",
+    "number_of_reviews_missing": "ô trống/thiếu",
+    "number_of_reviews_invalid": "không phải số nguyên >= 0",
+    "review_scores_value_missing": "ô trống/thiếu;  gọi hàm loại các dòng này khi tính KPI liên quan (hàm exclude_missing_review_scores)",
+    "review_scores_value_invalid": "ngoài khoảng 0-5",
+    "estimated_revenue_l365d_missing": "ô trống/thiếu",
+    "estimated_revenue_l365d_invalid": "không thỏa mãn điều kiện >= 0",
+    "estimated_occupancy_l365d_missing": "ô trống/thiếu",
+    "estimated_occupancy_l365d_invalid": "không phải số nguyên nằm trong khoảng từ 0 đến 365",
+    "calculated_host_listings_count_missing": "ô trống/thiếu",
+    "calculated_host_listings_count_invalid": "không thỏa mãn điều kiện >= 0", 
+    "analysis_area_missing": "ô trống/thiếu",
+    "analysis_area_invalid": "không thuộc A01-A08",
+    "room_type_missing": "ô trống/thiếu",
+    "room_type_invalid": "không thuộc {Entire home/apt, Private room}",
+    "last_scraped_missing": "ô trống/thiếu",
+    "last_scraped_invalid": "định dạng ngày không hợp lệ (NaT sau pd.to_datetime)",
+    "last_review_missing": "ô trống/thiếu",
+    "last_review_invalid": "định dạng ngày không hợp lệ (NaT sau pd.to_datetime)",
+    "price_missing": "ô giá trống; điền bằng median theo (analysis_area, room_type)",
+    "price_parse_error": "có giá trị nhưng không ép được sang số sau khi bỏ '$' và ','",
+    "price_non_positive": "giá <= 0",
+    "sus_price": "giá bất thường so với những gì chỗ ở có",
+    "price_outlier_iqr_area": "ngoài [Q1-1.5*IQR, Q3+1.5*IQR] theo analysis_area",
+    "price_outlier_p99_area": "giá > P99 theo analysis_area",
+    "price_outlier_iqr_room_type": "ngoài [Q1-1.5*IQR, Q3+1.5*IQR] theo room_type",
+    "price_outlier_p99_room_type": "giá > P99 theo room_type",
+    "score_without_reviews": "có review_scores_value nhưng number_of_reviews = 0",
+}
+
+GHI_CHU_CALENDAR = {
+    "calendar_listing_id_missing": "listing_id trống",
+    "calendar_duplicate_key": "trùng khoá (listing_id, date); tính tất cả dòng trong nhóm trùng (keep=False)",
+    "calendar_date_missing": "date trống",
+    "calendar_date_invalid": "date không ép được sang datetime",
+    "calendar_available_missing": "available trống",
+    "calendar_available_invalid": "available khác 't'/'f'",
+    "calendar_outside_listings": "listing_id của calendar không có trong listings",
+}
+
+GHI_CHU_REVIEWS = {
+    "review_id_invalid": "id trống",
+    "review_duplicate_within": "id lặp lại (tính từ lần xuất hiện thứ 2)",
+    "review_duplicate_conflict": "cùng id nhưng nội dung dòng khác nhau (xung đột)",
+    "review_date_missing": "date trống",
+    "review_date_invalid": "date không đúng định dạng hoặc vô lý (NaT sau pd.to_datetime)",
+    "review_outside_listings": "listing_id của reviews không có trong listings",
+}
+
+
+def qa_listings_report(flags, path):
+    return build_qa_report(flags, GHI_CHU_LISTINGS, path)
+
+
+def qa_calendar_report(flags, path):
+    return build_qa_report(flags, GHI_CHU_CALENDAR, path)
+
+
+def qa_reviews_report(flags, path):
+    return build_qa_report(flags, GHI_CHU_REVIEWS, path)
+
+
 def kiem_tra_cau_truc_all(df_listings, df_calendar, df_reviews):
     # 1. Bảng listings
     req_listings = {"id", "host_id", "analysis_area", "price", "number_of_reviews_ltm", "number_of_reviews",
@@ -188,7 +269,7 @@ def qa_price(before, after, flags):
     price_num = clean_price(before['price'])
 
     # Đổi đơn vị tiền tệ từ $ sang EUR
-    price_num = round(price_num * EXCHANGE_RATE, 3)
+    price_num = round(price_num * EXCHANGE_RATE, 2)
 
     flags['price_missing'] = before['price'].isna()
     flags['price_parse_error'] = before['price'].notna() & price_num.isna()
@@ -226,7 +307,7 @@ def fillter_output(after, flags):
     return out
 
 
-def clean_listings(df: pd.DataFrame):
+def clean_listings(df: pd.DataFrame, report_path, out_path):
     """Trả về bảng trước QA, bảng sau QA và các cờ theo dòng."""
     # Bảng trước QA và bảng cờ dùng cùng chỉ mục để tra lại đúng dòng.
     before = df.reset_index(drop=True).copy()
@@ -257,10 +338,13 @@ def clean_listings(df: pd.DataFrame):
     flag_score_without_reviews(after, flags)
 
     out = fillter_output(after, flags)
+
+    _ = qa_listings_report(flags, report_path)
+    out.to_csv(out_path, index=False, encoding='utf-8')
     return before, out, flags
 
 
-def clean_reviews(rv: pd.DataFrame, listings: pd.DataFrame):
+def clean_reviews(rv: pd.DataFrame, listings: pd.DataFrame, report_path, out_path):
     before = rv.reset_index(drop=True).copy()
     before["comments"] = before["comments"].str.strip().str.replace(r"\r?<br\s*/?>", " ", regex=True, flags=re.I)
 
@@ -271,10 +355,13 @@ def clean_reviews(rv: pd.DataFrame, listings: pd.DataFrame):
     flags['review_date_missing'] = before["date"].isna()
     flags['review_date_invalid'] = before["date"].notna() & after['date'].isna()
     flags['review_outside_listings'] = ~(before['listing_id'].isin(listings["id"]))
+    
+    _ = qa_reviews_report(flags, report_path)
+    after.to_csv(out_path, index=False, encoding='utf-8')
     return before, after, flags
 
 
-def clean_calendar(cal: pd.DataFrame, listings: pd.DataFrame):
+def clean_calendar(cal: pd.DataFrame, listings: pd.DataFrame, report_path, out_path):
     """Trả về bảng trước QA, bảng sau QA và các cờ theo dòng cho calendar."""
     before = cal.reset_index(drop=True).copy()
     after = before.copy()
@@ -295,7 +382,11 @@ def clean_calendar(cal: pd.DataFrame, listings: pd.DataFrame):
     })
 
     after["clean_available"] = after["available"].astype(str).str.lower().map({"t": True, "f": False})
+
+    _ = qa_calendar_report(flags, report_path)
+    after.to_csv(out_path, index=False, encoding='utf-8')
     return before, after, flags
+
 
 ### Các hàm dùng phụ trợ dùng khi tính KPI
 
