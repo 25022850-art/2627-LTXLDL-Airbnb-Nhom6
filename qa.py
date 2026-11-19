@@ -8,7 +8,10 @@ import re
 ROOM_TYPES = {'Entire home/apt', 'Private room'}
 AREAS = {'A01', 'A02', 'A03', 'A04', 'A05', 'A06', 'A07', 'A08'}
 
+# ID của những chỗ ở có giá bất thường so với những gì chỗ đó có
+ABNORMAL_PRICE_LISTINGS_ID = {"31186053", "688857223649708887", "49168183"}
 MIN_NIGHTS_UPPER_BOUND = 365
+EXCHANGE_RATE = 0.91
 
 
 def kiem_tra_cau_truc_all(df_listings, df_calendar, df_reviews):
@@ -129,6 +132,21 @@ def qa_room_type(before, after, flags):
     _qa_category_field(before, after, flags, 'room_type', ROOM_TYPES)
 
 
+def qa_last_review(before, after, flags):
+    after["last_review_processed"] = pd.to_datetime(before["last_review"], errors="coerce")
+
+    flags["last_review_missing"] = before["last_review"].isna()
+    flags["last_review_invalid"] = before["last_review"].notna() & after["last_review_processed"].isna()
+
+
+
+def qa_last_scraped(before, after, flags):
+    after["last_scraped_processed"] = pd.to_datetime(before["last_scraped"], errors="coerce")
+
+    flags["last_scraped_missing"] = before["last_scraped"].isna()
+    flags["last_scraped_invalid"] = before["last_scraped"].notna() & after["last_scraped_processed"].isna()
+
+
 def clean_price(series):
     """Bỏ '$' và ',' rồi ép sang số; giá trị không ép được thành NaN."""
     cleaned = series.astype(str).str.replace("$", "", regex=False).str.replace(",", "", regex=False)
@@ -169,9 +187,13 @@ def impute_price(after):
 def qa_price(before, after, flags):
     price_num = clean_price(before['price'])
 
+    # Đổi đơn vị tiền tệ từ $ sang EUR
+    price_num = round(price_num * EXCHANGE_RATE, 3)
+
     flags['price_missing'] = before['price'].isna()
     flags['price_parse_error'] = before['price'].notna() & price_num.isna()
     flags['price_non_positive'] = price_num.notna() & (price_num <= 0)
+    flags['sus_price'] = before["id"].isin(ABNORMAL_PRICE_LISTINGS_ID)
 
     valid_mask, lower_a, upper_a, p99_a = price_bounds(after["analysis_area"], price_num, "analysis_area")
     flags['price_outlier_iqr_area'] = valid_mask & ((price_num > upper_a) | (price_num < lower_a))
@@ -228,6 +250,9 @@ def clean_listings(df: pd.DataFrame):
     qa_analysis_area(before, after, flags)
     qa_room_type(before, after, flags)
 
+    qa_last_review(before, after, flags)
+    qa_last_scraped(before, after, flags)
+
     qa_price(before, after, flags)
     flag_score_without_reviews(after, flags)
 
@@ -246,7 +271,6 @@ def clean_reviews(rv: pd.DataFrame, listings: pd.DataFrame):
     flags['review_date_missing'] = before["date"].isna()
     flags['review_date_invalid'] = before["date"].notna() & after['date'].isna()
     flags['review_outside_listings'] = ~(before['listing_id'].isin(listings["id"]))
-    
     return before, after, flags
 
 
