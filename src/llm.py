@@ -13,6 +13,13 @@ import time
 
 load_dotenv()
 
+ROOT = Path(__file__).resolve().parent.parent
+REPORT_DIR = ROOT / "reports"
+REPORT_DIR.mkdir(parents=True, exist_ok=True)
+PROCESSED_DIR = ROOT / "data" / "processed"
+PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+
+
 class ReviewInfo(BaseModel):
     general_sentiment: Literal["Positive", "Mixed", "Negative"]
     accessibility: Literal["Highly accessible", "Poor access", "Neutral", "Not mentioned"]
@@ -63,7 +70,7 @@ def get_model(config):
         MODEL = config.get("llm").get("provider")
         return MODEL
     except Exception:
-        raise Exception(f"Có lỗi khi lấy 'provider' ở mục 'llm' từ file config; MODEL={MODEL}")
+        raise Exception(f"Có lỗi khi lấy 'provider' ở mục 'llm' từ file config")
 
 def create_client(config):
     API_KEY = get_api_key()
@@ -77,15 +84,14 @@ def create_client(config):
 def get_cache_path(config):
     try:
         cache_path = Path(config.get("llm").get("cache"))
-        cache_path.parent.mkdir(parents=True, exist_ok=True)
         return cache_path
     except Exception:
-        raise Exception(f"Có lỗi ở bước get_cache_path, cache_path={cache_path}")
+        raise Exception(f"Có lỗi ở bước get_cache_path, cache_path")
 
 def get_llm_cache(cache_path):
     try:
         if cache_path.exists():
-            return pd.read_json(cache_path, lines=True) 
+            return pd.read_json(cache_path, lines=True, dtype=False) 
         else : 
             return pd.DataFrame(columns=[
                 "comments", 
@@ -111,7 +117,8 @@ def call_llm(review, model, client):
     except Exception as e:
         raise Exception(f"Lỗi khi gọi LLM hoặc parse JSON: {e}")
 
-def label(cache_path, cache_llm, rv, client, model):
+def label(cache_path, rv, client, model):
+    cache_llm = get_llm_cache(cache_path)
     if not cache_llm.empty and 'comments' in cache_llm.columns:
         matched_row = cache_llm[cache_llm['comments'] == rv]
         if not matched_row.empty:
@@ -128,7 +135,6 @@ def label(cache_path, cache_llm, rv, client, model):
         lines=True, 
         mode='a', 
     )   
-    print(f"Luu thanh cong ra file {cache_path}")
     time.sleep(4)
     return result_dict 
 
@@ -138,41 +144,35 @@ def llm(rv, config_path):
     
     model = get_model(config)
     client = create_client(config)
-    cache_path = get_cache_path(config)
-    cache_llm = get_llm_cache(cache_path)
+
+    cache_path = ROOT / get_cache_path(config)
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
 
     rv = rv.copy()
-    result = rv["comments"].apply(lambda comment: label(cache_path, cache_llm, comment, client, model))
+    result = rv["comments"].apply(lambda comment: label(cache_path, comment, client, model))
     result = result.apply(pd.Series)
-
+    result = result.join(rv[["id"]])
+    
+    result.to_csv(PROCESSED_DIR / "llm_output.csv", reset_index=False, encoding="utf-8")
+    flags = audit_llm_predictions(result)
+    flags.to_csv(REPORT_DIR / "audit_llm.csv")
     return result
 
 def audit_llm_predictions(df):
-    flags = []
-    for idx, row in df.iterrows():
-        text = str(row["comments"]).strip()
-        word_count = len(text.split())
-        gen, acc, noise = row["general_sentiment"], row["accessibility"], row["noise"]
-        row_flags = []
+    text = df["comments"]
+    word_count = text.str.split().str.len()
 
-        # 1. Rỗng nhưng vẫn gán nhãn khía cạnh
-        if word_count == 0 and (acc != "Not mentioned" or noise != "Not mentioned"):
-            row_flags.append("EMPTY_TEXT_WITH_ASPECT")
+    acc = df["accessibility"]
+    noise = df["noise"]
 
-        # 2. Mâu thuẫn cực tính chéo
-        if gen == "Positive" and ("Negative" in [acc, noise]):
-            row_flags.append("CONFLICT_POS_GEN_WITH_NEG_ASPECT")
-        if gen == "Negative" and ("Positive" in [acc, noise]):
-            row_flags.append("CONFLICT_NEG_GEN_WITH_POS_ASPECT")
-        if {acc, noise} == {"Positive", "Negative"} and gen != "Mixed":
-            row_flags.append("MISSING_MIXED_SENTIMENT")
+    acc_mentioned = acc != "Not mentioned"
+    noise_mentioned = noise != "Not mentioned"
+    mentioned_count = acc_mentioned.astype(int) + noise_mentioned.astype(int)
 
-        # 3. Câu ngắn (<= 5 từ) nhưng bắt cả 2 khía cạnh
-        mentioned_count = sum(x != "Not mentioned" for x in [acc, noise])
-        if 0 < word_count <= 5 and mentioned_count > 1:
-            row_flags.append("SHORT_TEXT_MULTI_ASPECT")
+    rules = {
+        "EMPTY_TEXT_WITH_ASPECT": (word_count == 0) & (acc_mentioned | noise_mentioned),
+        "SHORT_TEXT_MULTI_ASPECT": (word_count > 0) & (word_count <= 5) & (mentioned_count > 1),
+    }
 
-        flags.append(", ".join(row_flags) if row_flags else "OK")
-    
-    df["audit_flag"] = flags
-    return df
+    flag_df = pd.DataFrame(rules)
+    return df.join(flag_df)
