@@ -27,24 +27,33 @@ PROMPT_TEMPLATE = """Bạn là một chuyên gia phân tích dữ liệu đánh 
   "noise": "Noisy" | "Acceptable" | "Quiet" | "Not mentioned"
 }}
 
-### QUY TẮC GÁN NHÃN CHI TIẾT:
+### QUY TẮC GÁN NHÃN CHI TIẾT (Áp dụng nghiêm ngặt theo từng bước):
 
 1. general_sentiment (Cảm xúc tổng thể):
-- "Mixed": Gán khi có cả khen và chê trong cùng một đánh giá, số lượng chê đáng kể hoặc khi đánh giá không rõ ràng, mâu thuẫn.
-- "Positive": CHỈ gán khi đánh giá hoàn toàn là khen ngợi hoặc khen ngợi chiếm ưu thế rõ ràng.
-- Ngoại lệ: Đánh giá trống/không có nội dung chữ -> gán "Mixed".
+- "Positive": Gán khi đánh giá hoàn toàn là khen ngợi, HOẶC lời khen áp đảo hoàn toàn lời chê. Lời chê (nếu có) chỉ là những bất tiện rất nhỏ, lướt qua, không ảnh hưởng đến chất lượng phòng ốc (ví dụ: "trời hôm đó mưa", "hơi khó tìm hộp đựng chìa khóa lúc đầu", "thiếu một cuộn giấy vệ sinh").
+- "Mixed": Gán khi lời chê và khen gần bằng nhau, HOẶC khi đánh giá có nhiều lời khen nhưng đi kèm với những phàn nàn ĐÁNG KỂ về cơ sở vật chất/không gian sống (ví dụ: có mùi hôi/funky smell, phòng quá nhỏ/cramped, không có chỗ để hành lý, quá lạnh/cold, đồ đạc cũ hỏng/small holes). 
+  -> LƯU Ý QUAN TRỌNG: Kể cả khi khách dùng cấu trúc "khen + chê + chốt lại bằng lời xoa dịu" (ví dụ: "The charm outweighs the negatives", "Apart from that it was great", "Everything is OK", "We would stay here again"), thì sự xuất hiện của các điểm trừ vật lý rõ ràng này vẫn BẮT BUỘC phải gán nhãn "Mixed".
+- "Negative": Gán khi đánh giá chủ yếu là phàn nàn, chê bai, hoặc sự thất vọng/tức giận chiếm ưu thế rõ ràng.
+- Ngoại lệ: Đánh giá trống, chỉ có ký tự đặc biệt hoặc không có nội dung chữ -> BẮT BUỘC gán "Mixed".
 
-2. accessibility (Vị trí & Đi lại):
-- "Neutral" ( ƯU TIÊN KIỂM TRA TRƯỚC, CHỈ LÀ KIỂM TRA TRƯỚC, KHÔNG GÁN NEUTRAL MÀ KHÔNG SUY NGHĨ KĨ): BẮT BUỘC gán nhãn này nếu đánh giá dùng các cụm từ thể hiện mức độ vừa phải như: "central enough", "location is ok", "good enough", "fine", "not bad".
-- "Highly accessible": CHỈ gán khi có thông tin CỤ THỂ về sự thuận tiện đi lại (khoảng cách, thời gian đi bộ, gần bến xe/ga tàu/tiện ích) HOẶC dùng từ "central/center/centre" kết hợp với location (chỉ khi không có từ enough hoặc các tính từ trong Neutral). Gán khi review nhấn mạnh khoảng cách gần như "near to", "walking distance", "close to" các địa điểm.
-- "Not mentioned": BẮT BUỘC gán nhãn này nếu khách chỉ khen vị trí chung chung bằng tính từ mạnh (ví dụ: "perfect location", "wonderful location", "great location") mà KHÔNG nhắc đến khoảng cách đi lại. Không tự suy diễn. Có thể gán nhãn Highly accessible nếu sau tính từ mạnh có thông tin về khoảng cách tới các tiện ích ("ví dụ :perfect location to visit the museum" -> Highly accessible).Nếu chỉ nói chung chung là "perfect location to visit Porto" thì vẫn là Neutral, chỉ khi là một tiện ích cụ thể (ví dụ: "museum", "park", "restaurant", "store") mới gán Highly accessible.
-
+2. accessibility (Vị trí & Khả năng đi lại):
+- BƯỚC 1 - KIỂM TRA SỰ LIÊN QUAN: Đọc xem đánh giá có nhắc trực tiếp đến VỊ TRÍ (location, area, neighborhood) hoặc VIỆC DI CHUYỂN/KHOẢNG CÁCH (walking, bus, metro, near, close, far...) hay không.
+  -> Nếu KHÔNG nhắc đến vị trí/đi lại: BẮT BUỘC gán "Not mentioned" và dừng xét mục này.
+  -> Nếu chỉ khen vị trí chung chung bằng tính từ mạnh ("perfect location", "great location", "wonderful area") mà KHÔNG nói rõ gần tiện ích/điểm tham quan cụ thể nào (như museum, park, station, restaurant...): BẮT BUỘC gán "Not mentioned". (Lưu ý: nếu nói chung chung "perfect location to visit Porto" vẫn gán "Not mentioned").
+- BƯỚC 2 - PHÂN LOẠI KHI CÓ NHẮC ĐẾN VỊ TRÍ/ĐI LẠI (Xét theo thứ tự ưu tiên sau):
+  + "Neutral": BẮT BUỘC gán khi khách đánh giá vị trí/đi lại ở mức trung bình, tạm ổn (ví dụ: "central enough", "location is ok", "location was fine", "area is not bad"). CHÚ Ý: Các từ "fine", "ok", "not bad" PHẢI đi kèm với chủ thể vị trí/khu vực mới được tính; nếu dùng cho phòng ở/chủ nhà ("room was fine") thì gán "Not mentioned".
+  + "Highly accessible": Gán khi có thông tin CỤ THỂ về sự thuận tiện đi lại ("walking distance", "near to", "close to", gần bến xe/ga tàu/tiện ích cụ thể như museum, store) HOẶC dùng từ "central/center/centre" mô tả vị trí (mà không kèm từ giảm nhẹ như "enough").
+  + "Poor access": Gán khi khách phàn nàn vị trí xa trung tâm, khó tìm đường, bất tiện đi lại hoặc leo dốc/cầu thang quá vất vả.
 
 3. noise (Âm thanh & Tiếng ồn):
-- "Quiet": ( ƯU TIÊN KIỂM TRA TRƯỚC, CHỈ LÀ KIỂM TRA TRƯỚC, KHÔNG GÁN QUIET MÀ KHÔNG SUY NGHĨ KĨ ) CHỈ gán khi khách nhấn mạnh sự yên tĩnh về mặt âm thanh (ví dụ: "quiet", "no noise at all"). "Quite" có thể hiểu là viết sai chính tả cho quiet và gán nhãn "Quiet".
-- "Not mentioned": BẮT BUỘC gán nhãn này với các từ chỉ không gian/bầu không khí chung chung như "peaceful", "calm", "relaxing" (chúng mô tả cảm giác thư thái, KHÔNG ĐỦ để kết luận về âm thanh). Không tự suy diễn khi không nhắc trực tiếp đến âm thanh.
-- "Acceptable": Gán khi có tiếng ồn nhưng ở mức chịu đựng được ("not too loud", "acceptable noise", "little noisy").
-- "Noisy": Chỉ gán khi tiếng ồn lớn, ảnh hưởng tiêu cực mạnh đến trải nghiệm.
+- BƯỚC 1 - KIỂM TRA SỰ LIÊN QUAN: Đọc xem đánh giá có từ ngữ nào mô tả TRỰC TIẾP về ÂM THANH, TIẾNG ĐỘNG hoặc SỰ YÊN TĨNH về thính giác hay không.
+  -> Nếu KHÔNG nhắc trực tiếp đến âm thanh/tiếng ồn: BẮT BUỘC gán "Not mentioned" và dừng xét mục này.
+  -> BẮT BUỘC gán "Not mentioned" với các từ chỉ bầu không khí/cảm giác chung chung như "peaceful", "calm", "relaxing" (không đủ cơ sở kết luận về tiếng ồn).
+  -> CẢNH BÁO TỪ "QUITE": Từ "quite" (khá là, ví dụ: "quite clean", "quite nice") là phó từ chỉ mức độ, KHÔNG PHẢI lỗi chính tả của "quiet". Chỉ coi "quite" là "Quiet" khi ngữ cảnh rõ ràng đang nói về âm thanh/sự yên tĩnh (ví dụ: "street was very quite at night").
+- BƯỚC 2 - PHÂN LOẠI KHI CÓ NHẮC ĐẾN ÂM THANH (Xét theo thứ tự ưu tiên sau):
+  + "Quiet": CHỈ gán khi khách khen ngợi rõ ràng về sự yên tĩnh âm thanh ("quiet", "no noise at all", "soundproof", "silent at night").
+  + "Acceptable": Gán khi có nhắc đến tiếng ồn nhưng ở mức chấp nhận được ("not too loud", "a little noisy", "acceptable noise").
+  + "Noisy": Gán khi phàn nàn tiếng ồn lớn, gây khó chịu hoặc ảnh hưởng giấc ngủ.
 
 Review: {text}"""
 
@@ -147,31 +156,38 @@ def llm(rv, config_path):
     return result
 
 def audit_llm_predictions(df):
-    flags = []
-    for idx, row in df.iterrows():
-        text = str(row["comments"]).strip()
-        word_count = len(text.split())
-        gen, acc, noise = row["general_sentiment"], row["accessibility"], row["noise"]
-        row_flags = []
+    text = df["comments"].astype(str).str.strip()
+    word_count = text.str.split().str.len()
 
+    gen = df["general_sentiment"]
+    acc = df["accessibility"]
+    noise = df["noise"]
+
+    acc_mentioned = acc != "Not mentioned"
+    noise_mentioned = noise != "Not mentioned"
+    mentioned_count = acc_mentioned.astype(int) + noise_mentioned.astype(int)
+
+    rules = {
         # 1. Rỗng nhưng vẫn gán nhãn khía cạnh
-        if word_count == 0 and (acc != "Not mentioned" or noise != "Not mentioned"):
-            row_flags.append("EMPTY_TEXT_WITH_ASPECT")
+        "EMPTY_TEXT_WITH_ASPECT": (word_count == 0) & (acc_mentioned | noise_mentioned),
 
         # 2. Mâu thuẫn cực tính chéo
-        if gen == "Positive" and ("Negative" in [acc, noise]):
-            row_flags.append("CONFLICT_POS_GEN_WITH_NEG_ASPECT")
-        if gen == "Negative" and ("Positive" in [acc, noise]):
-            row_flags.append("CONFLICT_NEG_GEN_WITH_POS_ASPECT")
-        if {acc, noise} == {"Positive", "Negative"} and gen != "Mixed":
-            row_flags.append("MISSING_MIXED_SENTIMENT")
+        "CONFLICT_POS_GEN_WITH_NEG_ASPECT": (gen == "Positive") & ((acc == "Negative") | (noise == "Negative")),
+        "CONFLICT_NEG_GEN_WITH_POS_ASPECT": (gen == "Negative") & ((acc == "Positive") | (noise == "Positive")),
+        "MISSING_MIXED_SENTIMENT": (
+            ((acc == "Positive") & (noise == "Negative")) |
+            ((acc == "Negative") & (noise == "Positive"))
+        ) & (gen != "Mixed"),
 
         # 3. Câu ngắn (<= 5 từ) nhưng bắt cả 2 khía cạnh
-        mentioned_count = sum(x != "Not mentioned" for x in [acc, noise])
-        if 0 < word_count <= 5 and mentioned_count > 1:
-            row_flags.append("SHORT_TEXT_MULTI_ASPECT")
+        "SHORT_TEXT_MULTI_ASPECT": (word_count > 0) & (word_count <= 5) & (mentioned_count > 1),
+    }
 
-        flags.append(", ".join(row_flags) if row_flags else "OK")
-    
-    df["audit_flag"] = flags
+    # Ghép các cờ: với mỗi dòng, nối tên các rule đang True bằng ", "
+    flag_df = pd.DataFrame({name: np.where(mask, name, "") for name, mask in rules.items()}, index=df.index)
+    combined = flag_df.agg(
+        lambda r: ", ".join(v for v in r if v), axis=1
+    )
+
+    df["audit_flag"] = combined.replace("", "OK")
     return df
