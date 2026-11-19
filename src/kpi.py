@@ -291,3 +291,36 @@ def calculate_top_n_host_share_over_time(
     final_kpi.to_csv(output_path, index=False)
     return final_kpi
 
+def calculate_unavailability_rate(
+    calendar_df,
+    listings_df,
+    output_path="data/processed/kpi_unavailability_rate.csv",
+):
+    df = calendar_df.merge(
+        listings_df[["id", "analysis_area"]],
+        left_on="listing_id", right_on="id", how="inner",
+    )
+    df["date"] = pd.to_datetime(df["date"])
+    df["year_month"] = df["date"].dt.to_period("M")
+    df["is_unavailable"] = (df["available"] == "f").astype(int)
+
+    # giữ các tháng đủ ngày
+    coverage = df.groupby("year_month").agg(rows=("listing_id", "size"), n=("listing_id", "nunique"))
+    coverage["days_per_listing"] = coverage["rows"] / coverage["n"]
+    is_full = coverage["days_per_listing"] >= coverage.index.days_in_month
+    df = df[df["year_month"].isin(coverage.index[is_full])]
+
+    kpi_df = df.groupby(["year_month", "analysis_area"]).agg(
+        n_listings=("listing_id", "nunique"),
+        total_days=("listing_id", "count"),
+        unavailable_days=("is_unavailable", "sum"),
+    ).reset_index()
+
+    kpi_df["unavailability_rate_%"] = (
+        kpi_df["unavailable_days"] / kpi_df["total_days"] * 100
+    ).round(2)
+
+    kpi_df = kpi_df.sort_values(["year_month", "analysis_area"]).reset_index(drop=True)
+    kpi_df.to_csv(output_path, index=False)
+    print(f"Đã lưu KPI Tỷ lệ không khả dụng tại: {output_path}")
+    return kpi_df
