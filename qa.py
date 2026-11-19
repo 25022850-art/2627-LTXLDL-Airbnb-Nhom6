@@ -8,6 +8,8 @@ import re
 ROOM_TYPES = {'Entire home/apt', 'Private room'}
 AREAS = {'A01', 'A02', 'A03', 'A04', 'A05', 'A06', 'A07', 'A08'}
 
+MIN_NIGHTS_UPPER_BOUND = 365
+
 
 def kiem_tra_cau_truc_all(df_listings, df_calendar, df_reviews):
     # 1. Bảng listings
@@ -107,6 +109,18 @@ def qa_review_scores_value(before, after, flags):
     _qa_numeric_field(before, after, flags, 'review_scores_value', 0, 5, False)
 
 
+def qa_estimated_revenue_l365d(before, after, flags):
+    _qa_numeric_field(before, after, flags, 'estimated_revenue_l365d', 0, None, False)
+
+
+def qa_estimated_occupancy_l365d(before, after, flags):
+    _qa_numeric_field(before, after, flags, 'estimated_occupancy_l365d', 0, 365, True)
+
+
+def qa_calculated_host_listings_count(before, after, flags):
+    _qa_numeric_field(before, after, flags, 'calculated_host_listings_count', 0, None, True)
+
+
 def qa_analysis_area(before, after, flags):
     _qa_category_field(before, after, flags, 'analysis_area', AREAS)
 
@@ -178,6 +192,11 @@ def flag_score_without_reviews(after, flags):
     flags['score_without_reviews'] = has_score & has_no_reviews
 
 
+def flag_min_max_nights(before, flags):
+    flags["min_nights_abnormal"] = before["minimum_nights"].notna() & (before["minimum_nights"] > MIN_NIGHTS_UPPER_BOUND)
+    flags["min_nights_greater_than_max"] = before["minimum_nights"].notna() & before["maximum_nights"].notna() & (before["minimum_nights"] > before["maximum_nights"])
+
+
 def fillter_output(after, flags):
     out = after.copy()
     valid_num_of_nights = ~(flags["min_nights_abnormal"])
@@ -194,6 +213,7 @@ def clean_listings(df: pd.DataFrame):
         before[field] = clean_text(before[field])
 
     flags = id_flags(before, 'listing')
+    flag_min_max_nights(before, flags)
 
     after = before.copy()
     
@@ -201,6 +221,9 @@ def clean_listings(df: pd.DataFrame):
     qa_number_of_reviews_ltm(before, after, flags)
     qa_number_of_reviews(before, after, flags)
     qa_review_scores_value(before, after, flags)
+    qa_estimated_revenue_l365d(before, after, flags)
+    qa_estimated_occupancy_l365d(before, after, flags)
+    qa_calculated_host_listings_count(before, after, flags)
 
     qa_analysis_area(before, after, flags)
     qa_room_type(before, after, flags)
@@ -209,7 +232,6 @@ def clean_listings(df: pd.DataFrame):
     flag_score_without_reviews(after, flags)
 
     out = fillter_output(after, flags)
-
     return before, out, flags
 
 
@@ -224,6 +246,7 @@ def clean_reviews(rv: pd.DataFrame, listings: pd.DataFrame):
     flags['review_date_missing'] = before["date"].isna()
     flags['review_date_invalid'] = before["date"].notna() & after['date'].isna()
     flags['review_outside_listings'] = ~(before['listing_id'].isin(listings["id"]))
+    
     return before, after, flags
 
 
