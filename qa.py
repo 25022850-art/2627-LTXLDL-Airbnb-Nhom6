@@ -296,3 +296,17 @@ def clean_calendar(cal: pd.DataFrame, listings: pd.DataFrame):
 
     after["clean_available"] = after["available"].astype(str).str.lower().map({"t": True, "f": False})
     return before, after, flags
+
+### Các hàm dùng phụ trợ dùng khi tính KPI
+
+# Loại bỏ các dòng thiếu review_scores_value
+def exclude_missing_review_scores(df, flags):
+    out = df.copy()
+    out = out.loc[~flags["review_scores_value_missing"]]
+    return out
+
+# Loại bỏ các listings có giá bất thường so với chỗ ở (xem trên web airbnb)
+def exclude_abnormal_price(df):
+    out = df.copy()
+    out = out.loc[~out["id"].isin(ABNORMAL_PRICE_LISTINGS_ID)]
+    return out
