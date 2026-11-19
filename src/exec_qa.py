@@ -46,5 +46,3 @@ def exec_qa(config):
         QA.clean_listings(listings, qa_report_listings_path, qa_processed_listings)
         QA.clean_reviews(reviews, listings, qa_report_reviews_path, qa_processed_reviews)
         QA.clean_calendar(calendar, listings, qa_report_calendar_path, qa_processed_calendar)
-        
-
