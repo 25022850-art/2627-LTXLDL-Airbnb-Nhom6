@@ -11,6 +11,7 @@ try:
         calculate_revpar_single_snapshot,
         calculate_professional_host_share_over_time,
         calculate_top_n_host_share_over_time,
+        calculate_unavailability_rate
     )
 except ImportError:
     from kpi import (
@@ -20,6 +21,7 @@ except ImportError:
         calculate_revpar_single_snapshot,
         calculate_professional_host_share_over_time,
         calculate_top_n_host_share_over_time,
+        calculate_unavailability_rate,
     )
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -36,11 +38,12 @@ reviews_path = snapshot_folder / "reviews.csv.gz"
 
 with open(CONFIG_PATH, "r", encoding="utf-8") as f:
     config = yaml.safe_load(f)
+kpi_cfg = config["kpi"]
 
 def exec_kpi():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    #calendar = pd.read_csv(calendar_path, encoding='utf-8', dtype={"listing_id": str})
+    calendar = pd.read_csv(calendar_path, encoding='utf-8', dtype={"listing_id": str})
     listings = pd.read_csv(listings_path, encoding='utf-8', dtype={"id": str, "host_id": str, "listing_id": str})
     reviews = pd.read_csv(reviews_path, encoding='utf-8', dtype={"id": str, "listing_id": str, "reviewer_id": str, "review_id": str})
 
@@ -60,7 +63,7 @@ def exec_kpi():
     # 3. KPI Overpriced Rate (single snapshot)
     overpriced_df = calculate_overpriced_rate(
         listings_df=listings,
-        **config["overpriced_rate"],
+        **kpi_cfg["overpriced_rate"],
         output_path=OUTPUT_DIR / "kpi_overpriced_rate.csv",
     )
 
@@ -73,7 +76,7 @@ def exec_kpi():
     # 5. KPI Professional Host Share (chuỗi thời gian qua các snapshot)
     pro_host_share_df = calculate_professional_host_share_over_time(
         config_path=CONFIG_PATH,
-        **config["professional_host"],
+        **kpi_cfg["professional_host"],
         latest_only=False,
         output_path=OUTPUT_DIR / "kpi_professional_host_share.csv",
     )
@@ -81,10 +84,18 @@ def exec_kpi():
     # 6. KPI Top N Host Share (toàn thành phố theo các mốc snapshot)
     top_n_host_share_df = calculate_top_n_host_share_over_time(
         config_path=CONFIG_PATH,
-        **config["top_n_host"],
+        **kpi_cfg["top_n_host"],
         latest_only=False,
         output_path=OUTPUT_DIR / "kpi_top_n_host_share.csv",
     )
+
+    #7. KPI tỉ lệ phòng không khả dụng 
+    unavailability_rate_df = calculate_unavailability_rate(
+    calendar,
+    listings,
+    output_path=OUTPUT_DIR / "kpi_unavailability_rate.csv",
+    )
+
     print(f"Hoàn tất tính toán toàn bộ KPI. File CSV đã lưu tại: {OUTPUT_DIR}")
     return {
         "review_concentration": (review_stats, review_concentration_pivot),
@@ -93,6 +104,7 @@ def exec_kpi():
         "revpar": revpar_df,
         "professional_host_share": pro_host_share_df,
         "top_n_host_share": top_n_host_share_df,
+        "unavailability_rate" : unavailability_rate_df,
     }
 
 
