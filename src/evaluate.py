@@ -121,6 +121,13 @@ def eval_noise(preds, nhan_tay):
     
 
 def evaluate(preds, nhan_tay):
+    ids = nhan_tay["id"]
+    if (~ids.isin(preds["id"])).sum() > 0:
+        raise Exception("Nhãn tay có id không nằm trong output của preds")
+
+    preds = preds.set_index("id").reindex(nhan_tay["id"])
+    nhan_tay = nhan_tay.set_index("id")
+
     f1_sentiment = eval_sentiment(preds, nhan_tay)
     f1_accessibility = eval_accessibility(preds, nhan_tay)
     f1_noise = eval_noise(preds, nhan_tay)
