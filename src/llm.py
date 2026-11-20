@@ -13,6 +13,13 @@ import time
 
 load_dotenv()
 
+ROOT = Path(__file__).resolve().parent.parent
+REPORT_DIR = ROOT / "reports"
+REPORT_DIR.mkdir(parents=True, exist_ok=True)
+PROCESSED_DIR = ROOT / "data" / "processed"
+PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+
+
 class ReviewInfo(BaseModel):
     general_sentiment: Literal["Positive", "Mixed", "Negative"]
     accessibility: Literal["Highly accessible", "Poor access", "Neutral", "Not mentioned"]
@@ -20,21 +27,13 @@ class ReviewInfo(BaseModel):
     
 PROMPT_TEMPLATE = """Bạn là một chuyên gia phân tích dữ liệu đánh giá chỗ ở. Nhiệm vụ của bạn là trích xuất thông tin và phân loại cảm xúc theo đúng định dạng JSON.
 
-### ĐỊNH DẠNG ĐẦU RA BẮT BUỘC (Chỉ trả về JSON, không giải thích thêm):
-{{
-  "general_sentiment": "Positive" | "Negative" | "Mixed",
-  "accessibility": "Highly accessible" | "Poor access" | "Neutral" | "Not mentioned",
-  "noise": "Noisy" | "Acceptable" | "Quiet" | "Not mentioned"
-}}
-
 ### QUY TẮC GÁN NHÃN CHI TIẾT (Áp dụng nghiêm ngặt theo từng bước):
 
 1. general_sentiment (Cảm xúc tổng thể):
-- "Positive": Gán khi đánh giá hoàn toàn là khen ngợi, HOẶC lời khen áp đảo hoàn toàn lời chê. Lời chê (nếu có) chỉ là những bất tiện rất nhỏ, lướt qua, không ảnh hưởng đến chất lượng phòng ốc (ví dụ: "trời hôm đó mưa", "hơi khó tìm hộp đựng chìa khóa lúc đầu", "thiếu một cuộn giấy vệ sinh").
-- "Mixed": Gán khi lời chê và khen gần bằng nhau, HOẶC khi đánh giá có nhiều lời khen nhưng đi kèm với những phàn nàn ĐÁNG KỂ về cơ sở vật chất/không gian sống (ví dụ: có mùi hôi/funky smell, phòng quá nhỏ/cramped, không có chỗ để hành lý, quá lạnh/cold, đồ đạc cũ hỏng/small holes). 
-  -> LƯU Ý QUAN TRỌNG: Kể cả khi khách dùng cấu trúc "khen + chê + chốt lại bằng lời xoa dịu" (ví dụ: "The charm outweighs the negatives", "Apart from that it was great", "Everything is OK", "We would stay here again"), thì sự xuất hiện của các điểm trừ vật lý rõ ràng này vẫn BẮT BUỘC phải gán nhãn "Mixed".
-- "Negative": Gán khi đánh giá chủ yếu là phàn nàn, chê bai, hoặc sự thất vọng/tức giận chiếm ưu thế rõ ràng.
-- Ngoại lệ: Đánh giá trống, chỉ có ký tự đặc biệt hoặc không có nội dung chữ -> BẮT BUỘC gán "Mixed".
+- "Mixed": Gán khi có cả khen và chê trong cùng một đánh giá, hoặc nội dung mâu thuẫn, không rõ ràng.
+- "Positive": CHỈ gán khi đánh giá hoàn toàn là khen ngợi hoặc khen ngợi chiếm ưu thế rõ ràng.
+- "Negative": Gán khi đánh giá chủ yếu là phàn nàn, chê bai hoặc thể hiện sự không hài lòng.
+- Ngoại lệ: Đánh giá trống, chỉ có ký tự đặc biệt hoặc không có nội dung chữ -> gán "Mixed".
 
 2. accessibility (Vị trí & Khả năng đi lại):
 - BƯỚC 1 - KIỂM TRA SỰ LIÊN QUAN: Đọc xem đánh giá có nhắc trực tiếp đến VỊ TRÍ (location, area, neighborhood) hoặc VIỆC DI CHUYỂN/KHOẢNG CÁCH (walking, bus, metro, near, close, far...) hay không.
@@ -71,7 +70,7 @@ def get_model(config):
         MODEL = config.get("llm").get("provider")
         return MODEL
     except Exception:
-        raise Exception(f"Có lỗi khi lấy 'provider' ở mục 'llm' từ file config; MODEL={MODEL}")
+        raise Exception(f"Có lỗi khi lấy 'provider' ở mục 'llm' từ file config")
 
 def create_client(config):
     API_KEY = get_api_key()
@@ -85,18 +84,17 @@ def create_client(config):
 def get_cache_path(config):
     try:
         cache_path = Path(config.get("llm").get("cache"))
-        cache_path.parent.mkdir(parents=True, exist_ok=True)
         return cache_path
     except Exception:
-        raise Exception(f"Có lỗi ở bước get_cache_path, cache_path={cache_path}")
+        raise Exception(f"Có lỗi ở bước get_cache_path, cache_path")
 
 def get_llm_cache(cache_path):
     try:
         if cache_path.exists():
-            return pd.read_json(cache_path, lines=True) 
+            return pd.read_json(cache_path, lines=True, dtype=False) 
         else : 
             return pd.DataFrame(columns=[
-                "review_text", 
+                "comments", 
                 "general_sentiment", 
                 "accessibility", 
                 "noise"
@@ -119,7 +117,8 @@ def call_llm(review, model, client):
     except Exception as e:
         raise Exception(f"Lỗi khi gọi LLM hoặc parse JSON: {e}")
 
-def label(cache_path, cache_llm, rv, client, model):
+def label(cache_path, rv, client, model):
+    cache_llm = get_llm_cache(cache_path)
     if not cache_llm.empty and 'comments' in cache_llm.columns:
         matched_row = cache_llm[cache_llm['comments'] == rv]
         if not matched_row.empty:
@@ -136,7 +135,6 @@ def label(cache_path, cache_llm, rv, client, model):
         lines=True, 
         mode='a', 
     )   
-    print(f"Luu thanh cong ra file {cache_path}")
     time.sleep(4)
     return result_dict 
 
@@ -146,20 +144,24 @@ def llm(rv, config_path):
     
     model = get_model(config)
     client = create_client(config)
-    cache_path = get_cache_path(config)
-    cache_llm = get_llm_cache(cache_path)
+
+    cache_path = ROOT / get_cache_path(config)
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
 
     rv = rv.copy()
-    result = rv["comments"].apply(lambda comment: label(cache_path, cache_llm, comment, client, model))
+    result = rv["comments"].apply(lambda comment: label(cache_path, comment, client, model))
     result = result.apply(pd.Series)
-
+    result = result.join(rv[["id"]])
+    
+    result.to_csv(PROCESSED_DIR / "llm_output.csv", reset_index=False, encoding="utf-8")
+    flags = audit_llm_predictions(result)
+    flags.to_csv(REPORT_DIR / "audit_llm.csv")
     return result
 
 def audit_llm_predictions(df):
-    text = df["comments"].astype(str).str.strip()
+    text = df["comments"]
     word_count = text.str.split().str.len()
 
-    gen = df["general_sentiment"]
     acc = df["accessibility"]
     noise = df["noise"]
 
@@ -168,26 +170,9 @@ def audit_llm_predictions(df):
     mentioned_count = acc_mentioned.astype(int) + noise_mentioned.astype(int)
 
     rules = {
-        # 1. Rỗng nhưng vẫn gán nhãn khía cạnh
         "EMPTY_TEXT_WITH_ASPECT": (word_count == 0) & (acc_mentioned | noise_mentioned),
-
-        # 2. Mâu thuẫn cực tính chéo
-        "CONFLICT_POS_GEN_WITH_NEG_ASPECT": (gen == "Positive") & ((acc == "Negative") | (noise == "Negative")),
-        "CONFLICT_NEG_GEN_WITH_POS_ASPECT": (gen == "Negative") & ((acc == "Positive") | (noise == "Positive")),
-        "MISSING_MIXED_SENTIMENT": (
-            ((acc == "Positive") & (noise == "Negative")) |
-            ((acc == "Negative") & (noise == "Positive"))
-        ) & (gen != "Mixed"),
-
-        # 3. Câu ngắn (<= 5 từ) nhưng bắt cả 2 khía cạnh
         "SHORT_TEXT_MULTI_ASPECT": (word_count > 0) & (word_count <= 5) & (mentioned_count > 1),
     }
 
-    # Ghép các cờ: với mỗi dòng, nối tên các rule đang True bằng ", "
-    flag_df = pd.DataFrame({name: np.where(mask, name, "") for name, mask in rules.items()}, index=df.index)
-    combined = flag_df.agg(
-        lambda r: ", ".join(v for v in r if v), axis=1
-    )
-
-    df["audit_flag"] = combined.replace("", "OK")
-    return df
+    flag_df = pd.DataFrame(rules)
+    return df.join(flag_df)
