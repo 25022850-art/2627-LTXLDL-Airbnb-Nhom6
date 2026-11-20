@@ -409,3 +409,11 @@ def exclude_nan_price(df):
     out = df.copy()
     out = out.loc[out["price_processed"].notna()]
     return out
+
+def exclude_missing_days_in_month(df):
+    out = df.copy()
+    coverage = out.groupby("year_month").agg(rows=("listing_id", "size"), n=("listing_id", "nunique"))
+    coverage["days_per_listing"] = coverage["rows"] / coverage["n"]
+    is_full = coverage["days_per_listing"] >= coverage.index.days_in_month
+    out = out[out["year_month"].isin(coverage.index[is_full])]
+    return out 

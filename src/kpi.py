@@ -7,9 +7,9 @@ import json
 
 
 try:
-    from src.qa import exclude_nan_price, exclude_missing_review_scores
+    from src.qa import exclude_nan_price, exclude_missing_review_scores, exclude_missing_days_in_month
 except ImportError:
-    from qa import exclude_nan_price, exclude_missing_review_scores
+    from qa import exclude_nan_price, exclude_missing_review_scores, exclude_missing_days_in_month
 
 
 def _read_processed_listings(snapshot, usecols=None):
@@ -330,10 +330,7 @@ def calculate_unavailability_rate(
     df["is_unavailable"] = (~df["clean_available"].astype(bool)).astype(int)
 
     # giữ các tháng đủ ngày
-    coverage = df.groupby("year_month").agg(rows=("listing_id", "size"), n=("listing_id", "nunique"))
-    coverage["days_per_listing"] = coverage["rows"] / coverage["n"]
-    is_full = coverage["days_per_listing"] >= coverage.index.days_in_month
-    df = df[df["year_month"].isin(coverage.index[is_full])]
+    df = exclude_missing_days_in_month(df)
 
     kpi_df = df.groupby(["year_month", "analysis_area_processed"]).agg(
         n_listings=("listing_id", "nunique"),
