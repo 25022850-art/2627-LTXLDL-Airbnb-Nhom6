@@ -2,8 +2,7 @@
 
 Cách dùng:
     python run_pipeline.py                      # chạy tất cả các bước
-    python run_pipeline.py --steps qa kpi       # chỉ chạy một số bước
-    python run_pipeline.py --skip llm eval      # bỏ qua một số bước
+    python run_pipeline.py --skip-llm           # bỏ qua llm
 """
 import argparse
 from pathlib import Path
@@ -34,9 +33,6 @@ def run_pipeline():
     skip_llm = args.skip_llm
 
     config = load_config()
-    # print("Bước: Tải dữ liệu raw")
-    # download_raw(CONFIG_PATH)
-    # print("Tải dữ liệu raw hoàn tất")
 
     print("Bước: Làm sạch dữ liệu (QA)")
     exec_qa(config)

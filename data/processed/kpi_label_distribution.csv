@@ -1,0 +1,10 @@
+aspect,label,count,percentage
+general_sentiment,Positive,956,95.6
+general_sentiment,Mixed,37,3.7
+general_sentiment,Negative,7,0.7
+accessibility,Highly accessible,496,49.6
+accessibility,Poor access,18,1.8
+accessibility,Neutral,8,0.8
+noise,Quiet,118,11.8
+noise,Noisy,38,3.8
+noise,Acceptable,21,2.1

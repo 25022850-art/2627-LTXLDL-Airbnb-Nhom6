@@ -1,0 +1,7 @@
+aspect,label,total_reviews,positive_rate,mixed_rate,negative_rate,non_positive_rate,risk_lift
+accessibility,Highly accessible,496,96.57,3.43,0.0,3.43,0.78
+accessibility,Neutral,8,100.0,0.0,0.0,0.0,0.0
+accessibility,Poor access,18,83.33,16.67,0.0,16.67,3.79
+noise,Acceptable,21,100.0,0.0,0.0,0.0,0.0
+noise,Noisy,38,52.63,44.74,2.63,47.37,10.77
+noise,Quiet,118,100.0,0.0,0.0,0.0,0.0

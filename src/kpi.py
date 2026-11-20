@@ -380,8 +380,8 @@ def label_distribution(llm_output, output_path="data/processed/kpi_label_distrib
     result_df.to_csv(output_path, index=False)
     return result_df
 
-def aspect_sentiment_correlation(output_llm, output_path = "data/processed/kpi_aspect_sentiment_correlation.csv" ):
-    df = output_llm.copy()
+def aspect_sentiment_correlation(llm_output, output_path = "data/processed/kpi_aspect_sentiment_correlation.csv" ):
+    df = llm_output.copy()
     aspects = ['accessibility', 'noise']
     sentiment_col = 'general_sentiment'
 
