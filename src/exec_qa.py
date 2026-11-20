@@ -1,7 +1,12 @@
 from pathlib import Path
 
 import pandas as pd
-import src.qa as QA
+from src.qa import (
+    kiem_tra_cau_truc_all,
+    clean_listings,
+    clean_reviews,
+    clean_calendar,
+)
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 RAW_DIR = DATA_DIR / "raw"
@@ -42,7 +47,7 @@ def exec_qa(config):
         qa_processed_reviews = snapshot_folder_processed / "processed_reviews.csv"
         qa_processed_calendar = snapshot_folder_processed / "processed_calendar.csv"
 
-        QA.kiem_tra_cau_truc_all(listings, calendar, reviews)
-        QA.clean_listings(listings, qa_report_listings_path, qa_processed_listings)
-        QA.clean_reviews(reviews, listings, qa_report_reviews_path, qa_processed_reviews)
-        QA.clean_calendar(calendar, listings, qa_report_calendar_path, qa_processed_calendar)
+        kiem_tra_cau_truc_all(listings, calendar, reviews)
+        clean_listings(listings, qa_report_listings_path, qa_processed_listings)
+        clean_reviews(reviews, listings, qa_report_reviews_path, qa_processed_reviews)
+        clean_calendar(calendar, listings, qa_report_calendar_path, qa_processed_calendar)

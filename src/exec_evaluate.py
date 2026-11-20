@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
-import evaluate as EVAL
+from src.evaluate import evaluate
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 SAMPLES_DIR = DATA_DIR / "samples"
@@ -13,13 +13,13 @@ REPORT_DIR.mkdir(parents=True, exist_ok=True)
 def exec_eval_baseline():
     nhan_tay = pd.read_csv(SAMPLES_DIR / "nhan_tay.csv", encoding="utf-8", dtype={"id": str})
     preds = pd.read_csv(PROCESSED_DIR / "baseline_output.csv", encoding="utf-8", dtype={"id": str})
-    result = EVAL.evaluate(preds, nhan_tay)
+    result = evaluate(preds, nhan_tay)
     return pd.DataFrame([result])
 
 def exec_eval_llm():
     nhan_tay = pd.read_csv(SAMPLES_DIR / "nhan_tay.csv", encoding="utf-8", dtype={"id": str})
     preds = pd.read_csv(PROCESSED_DIR / "llm_output.csv", encoding="utf-8", dtype={"id": str})
-    result = EVAL.evaluate(preds, nhan_tay)
+    result = evaluate(preds, nhan_tay)
     return pd.DataFrame([result])
 
 def exec_eval():
