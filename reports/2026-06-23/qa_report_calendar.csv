@@ -1,0 +1,8 @@
+quy_tac,so_dong,ghi_chu
+calendar_listing_id_missing,0,listing_id trống
+calendar_duplicate_key,0,"trùng khoá (listing_id, date); tính tất cả dòng trong nhóm trùng (keep=False)"
+calendar_date_missing,0,date trống
+calendar_date_invalid,0,date không ép được sang datetime
+calendar_available_missing,0,available trống
+calendar_available_invalid,0,available khác 't'/'f'
+calendar_outside_listings,0,listing_id của calendar không có trong listings

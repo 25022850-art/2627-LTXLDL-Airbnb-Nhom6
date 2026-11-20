@@ -153,7 +153,7 @@ def llm(rv, config_path):
     result = result.apply(pd.Series)
     result = result.join(rv[["id"]])
     
-    result.to_csv(PROCESSED_DIR / "llm_output.csv", reset_index=False, encoding="utf-8")
+    result.to_csv(PROCESSED_DIR / "llm_output.csv", index=False, encoding="utf-8")
     flags = audit_llm_predictions(result)
     flags.to_csv(REPORT_DIR / "audit_llm.csv")
     return result
