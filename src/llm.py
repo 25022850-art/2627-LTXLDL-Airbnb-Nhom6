@@ -156,6 +156,9 @@ def llm(rv, config_path):
     result.to_csv(PROCESSED_DIR / "llm_output.csv", index=False, encoding="utf-8")
     flags = audit_llm_predictions(result)
     flags.to_csv(REPORT_DIR / "audit_llm.csv")
+
+    audit_summary = flags[["EMPTY_TEXT_WITH_ASPECT", "SHORT_TEXT_MULTI_ASPECT"]].sum()
+    audit_summary.to_csv(REPORT_DIR / "audit_llm_summary.csv")
     return result
 
 def audit_llm_predictions(df):

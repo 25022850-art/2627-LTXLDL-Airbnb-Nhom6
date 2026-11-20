@@ -34,6 +34,10 @@ def run_pipeline():
 
     config = load_config()
 
+    print("Bước: Tải dữ liệu raw")
+    download_raw(CONFIG_PATH)
+    print("Tải dữ liệu raw hoàn tất")
+
     print("Bước: Làm sạch dữ liệu (QA)")
     exec_qa(config)
     print("Hoàn thành bước làm sạch")
