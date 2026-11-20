@@ -3,16 +3,19 @@ from pathlib import Path
 
 import pandas as pd
 import re
+import yaml
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+CONFIG_PATH = PROJECT_ROOT / "configs" / "porto.yaml"
 
-ROOM_TYPES = {'Entire home/apt', 'Private room'}
-AREAS = {'A01', 'A02', 'A03', 'A04', 'A05', 'A06', 'A07', 'A08'}
+with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+    config = yaml.safe_load(f)
 
-# ID của những chỗ ở có giá bất thường so với những gì chỗ đó có
-ABNORMAL_PRICE_LISTINGS_ID = {"31186053", "688857223649708887", "49168183"}
-MIN_NIGHTS_UPPER_BOUND = 365
-EXCHANGE_RATE = 0.91
-
+ABNORMAL_PRICE_LISTINGS_ID = config.get("qa").get("abnormal_price_listings_id")
+MIN_NIGHTS_UPPER_BOUND = config.get("qa").get("min_nights_upper_bound")
+EXCHANGE_RATE = config.get("qa").get("exchange_rate")
+ROOM_TYPES = config.get("qa").get("room_types")
+AREAS = config.get("qa").get("areas")
 
 def build_qa_report(flags, ghi_chu, path=None):
     rows = [
@@ -270,7 +273,7 @@ def qa_price(before, after, flags):
     price_num = clean_price(before['price'])
 
     # Đổi đơn vị tiền tệ từ $ sang EUR
-    price_num = round(price_num * EXCHANGE_RATE, 2)
+    price_num = round(price_num * EXCHANGE_RATE, 3)
 
     flags['price_missing'] = before['price'].isna()
     flags['price_parse_error'] = before['price'].notna() & price_num.isna()
