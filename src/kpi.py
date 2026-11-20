@@ -48,7 +48,12 @@ def calculate_review_concentration(listings_df, reviews_df, output_path = "data/
     ).fillna(0)
 
     concentration_pivot = concentration_pivot.round(2)
-    concentration_pivot.to_csv(output_path, index=True)
+
+    stats_out = stats.rename(columns={"analysis_area_processed": "analysis_area"}).copy()
+    stats_out["year"] = stats_out["year"].dt.year        # Period -> số nguyên
+    stats_out["concentration_pct"] = stats_out["concentration_pct"].round(2)
+    stats_out = stats_out.sort_values(["year", "analysis_area"]).reset_index(drop=True)
+    stats_out.to_csv(output_path, index=False)
 
     return stats, concentration_pivot
 
@@ -219,17 +224,18 @@ def calculate_professional_host_share_single_snapshot(listings_df, snapshot=None
     kpi_df = (
         df.groupby(["analysis_area_processed", "host_tier"], observed=False)
         .size()
-        .unstack("host_tier")
+        .reset_index(name="listings")
     )
-    kpi_df.columns = [f"{tier}_listings" for tier in kpi_df.columns]
-    kpi_df["total_listings"] = kpi_df.sum(axis=1)
+    kpi_df["total_listings"] = (
+        kpi_df.groupby("analysis_area_processed", observed=False)["listings"]
+        .transform("sum")
+    )
 
-    for tier in ["individual", "small_multi", "professional"]:
-        kpi_df[f"{tier}_share_%"] = (
-            kpi_df[f"{tier}_listings"] / kpi_df["total_listings"] * 100
-        ).round(2)
+    kpi_df["share_%"] = (
+        kpi_df["listings"] / kpi_df["total_listings"].replace(0, np.nan) * 100
+    ).round(2)
 
-    kpi_df = kpi_df.reset_index().rename(columns={"analysis_area_processed": "analysis_area"})
+    kpi_df = kpi_df.rename(columns={"analysis_area_processed": "analysis_area"})
     kpi_df.insert(0, "snapshot", str(snapshot))
     return kpi_df
 
@@ -348,3 +354,72 @@ def calculate_unavailability_rate(
     kpi_df.to_csv(output_path, index=False)
     print(f"Đã lưu KPI Tỷ lệ không khả dụng tại: {output_path}")
     return kpi_df
+
+
+def label_distribution(llm_output, output_path="data/processed/kpi_label_distribution.csv"):
+    df = llm_output.copy()
+    columns = ['general_sentiment', 'accessibility', 'noise']
+
+    results = []
+
+    for col in columns:
+        counts = df[col].value_counts()
+
+        for label, count in counts.items():
+            if label == 'Not mentioned':
+                continue
+
+            results.append({
+                'aspect': col,
+                'label': label,
+                'count': count,
+                'percentage': round(count / len(df) * 100, 2)
+            })
+
+    result_df = pd.DataFrame(results)
+    result_df.to_csv(output_path, index=False)
+    return result_df
+
+def aspect_sentiment_correlation(output_llm, output_path = "data/processed/kpi_aspect_sentiment_correlation.csv" ):
+    df = output_llm.copy()
+    aspects = ['accessibility', 'noise']
+    sentiment_col = 'general_sentiment'
+
+    negative_labels = ['Mixed', 'Negative']
+
+    # Baseline: non-positive rate across all reviews
+    baseline = df[sentiment_col].isin(negative_labels).mean()
+
+    results = []
+
+    for aspect in aspects:
+        for label, group in df.groupby(aspect):
+            if label == 'Not mentioned':
+                continue
+
+            total = len(group)
+
+            positive = (group[sentiment_col] == 'Positive').sum()
+            mixed = (group[sentiment_col] == 'Mixed').sum()
+            negative = (group[sentiment_col] == 'Negative').sum()
+
+            non_positive_rate = (mixed + negative) / total
+            risk_lift = (
+                non_positive_rate / baseline
+                if baseline > 0 else float('nan')
+            )
+
+            results.append({
+                'aspect': aspect,
+                'label': label,
+                'total_reviews': total,
+                'positive_rate': round(positive / total * 100, 2),
+                'mixed_rate': round(mixed / total * 100, 2),
+                'negative_rate': round(negative / total * 100, 2),
+                'non_positive_rate': round(non_positive_rate * 100, 2),
+                'risk_lift': round(risk_lift, 2)
+            })
+
+    result_df = pd.DataFrame(results)
+    result_df.to_csv(output_path, index=False)
+    return result_df

@@ -11,7 +11,9 @@ try:
         calculate_revpar_single_snapshot,
         calculate_professional_host_share_over_time,
         calculate_top_n_host_share_over_time,
-        calculate_unavailability_rate
+        calculate_unavailability_rate,
+        label_distribution,
+        aspect_sentiment_correlation,
     )
 except ImportError:
     from kpi import (
@@ -22,6 +24,8 @@ except ImportError:
         calculate_professional_host_share_over_time,
         calculate_top_n_host_share_over_time,
         calculate_unavailability_rate,
+        label_distribution,
+        aspect_sentiment_correlation,
     )
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -40,6 +44,7 @@ snapshot_folder = PROCESSED_DIR / str(SNAPSHOT)
 calendar_path = snapshot_folder / "processed_calendar.csv"
 listings_path = snapshot_folder / "processed_listings.csv"
 reviews_path = snapshot_folder / "processed_reviews.csv"
+llm_path = PROCESSED_DIR / "llm_output.csv"
 
 def exec_kpi():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -59,6 +64,9 @@ def exec_kpi():
         dtype={"id": str, "listing_id": str},
         usecols=["id", "listing_id", "date"],
         parse_dates=["date"],
+    )
+    llm_output = pd.read_csv(
+        llm_path, encoding='utf-8',
     )
 
     # 1. KPI Review Concentration
@@ -110,6 +118,18 @@ def exec_kpi():
     output_path=OUTPUT_DIR / "kpi_unavailability_rate.csv",
     )
 
+    #8. KPI tỉ lệ các nhãn llm 
+    label_distribution_df = label_distribution(
+        llm_output=llm_output,
+        output_path= OUTPUT_DIR / "kpi_label_distribution.csv"
+    )
+
+    #9 KPI tỉ lệ các nhãn trong aspects là review non-positive
+    aspect_sentiment_correlation_df = aspect_sentiment_correlation(
+        llm_output = llm_output,
+        output_path= OUTPUT_DIR / "kpi_aspect_sentiment_correlation.csv"
+    )
+
     print(f"Hoàn tất tính toán toàn bộ KPI. File CSV đã lưu tại: {OUTPUT_DIR}")
     return {
         "review_concentration": (review_stats, review_concentration_pivot),
@@ -119,6 +139,8 @@ def exec_kpi():
         "professional_host_share": pro_host_share_df,
         "top_n_host_share": top_n_host_share_df,
         "unavailability_rate" : unavailability_rate_df,
+        "label_distribution" : label_distribution_df,
+        "aspect_sentiment_correlation" : aspect_sentiment_correlation_df,
     }
 
 
