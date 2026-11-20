@@ -10,3 +10,12 @@ llm:
   sample_size: 1000
   aspects: [general_sentiment, accessibility, noise]
   cache: data/processed/llm_cache.jsonl
+
+kpi:
+  overpriced_rate:
+    premium_ratio: 1.25
+    low_value_threshold: 4.6
+  professional_host:
+    pro_threshold: 10
+  top_n_host:
+    top_n: 10
