@@ -28,24 +28,38 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 CONFIG_PATH = PROJECT_ROOT / "configs" / "porto.yaml"
 OUTPUT_DIR = PROJECT_ROOT / "data" / "processed"
-RAW_PATH = PROJECT_ROOT / "data" / "raw"
-
-snapshot_folder = RAW_PATH / "2026-06-23"
-
-calendar_path = snapshot_folder / "calendar.csv.gz"
-listings_path = snapshot_folder / "listings.csv.gz"
-reviews_path = snapshot_folder / "reviews.csv.gz"
+PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 
 with open(CONFIG_PATH, "r", encoding="utf-8") as f:
     config = yaml.safe_load(f)
 kpi_cfg = config["kpi"]
 
+SNAPSHOT = "2026-06-23"
+snapshot_folder = PROCESSED_DIR / str(SNAPSHOT)
+
+calendar_path = snapshot_folder / "processed_calendar.csv"
+listings_path = snapshot_folder / "processed_listings.csv"
+reviews_path = snapshot_folder / "processed_reviews.csv"
+
 def exec_kpi():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    calendar = pd.read_csv(calendar_path, encoding='utf-8', dtype={"listing_id": str})
-    listings = pd.read_csv(listings_path, encoding='utf-8', dtype={"id": str, "host_id": str, "listing_id": str})
-    reviews = pd.read_csv(reviews_path, encoding='utf-8', dtype={"id": str, "listing_id": str, "reviewer_id": str, "review_id": str})
+    calendar = pd.read_csv(
+        calendar_path, encoding='utf-8',
+        dtype={"listing_id": str},
+        parse_dates=["clean_date"],
+    )
+    listings = pd.read_csv(
+        listings_path, encoding='utf-8',
+        dtype={"id": str, "host_id": str},
+        parse_dates=["last_review_processed", "last_scraped_processed"],
+    )
+    reviews = pd.read_csv(
+        reviews_path, encoding='utf-8',
+        dtype={"id": str, "listing_id": str},
+        usecols=["id", "listing_id", "date"],
+        parse_dates=["date"],
+    )
 
     # 1. KPI Review Concentration
     review_stats, review_concentration_pivot = calculate_review_concentration(

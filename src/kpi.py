@@ -6,12 +6,36 @@ import numpy as np
 import json
 
 
-def calculate_review_concentration(listings_df, reviews_df, output_path = "data/processed/kpi_review_concentration.csv"):
-    reviews_df["date"] = pd.to_datetime(reviews_df["date"], format="%Y-%m-%d", errors="coerce")
-    reviews_df["year"] = reviews_df["date"].dt.to_period('Y')
-    df = reviews_df.merge(listings_df[["id", "analysis_area"]], left_on = "listing_id", right_on = "id", how = "inner")
+try:
+    from src.qa import exclude_nan_price, exclude_missing_review_scores
+except ImportError:
+    from qa import exclude_nan_price, exclude_missing_review_scores
 
-    area_yearly_reviews = df.groupby(["year", "analysis_area"]).size().reset_index(name="area_reviews")
+
+def _read_processed_listings(snapshot, usecols=None):
+    path = (
+        Path(__file__).resolve().parent.parent
+        / "data" / "processed" / str(snapshot) / "processed_listings.csv"
+    )
+    date_cols = ["last_review_processed", "last_scraped_processed"]
+    if usecols is not None:
+        date_cols = [c for c in date_cols if c in usecols]
+    return pd.read_csv(
+        path,
+        dtype={"id": str, "host_id": str},
+        usecols=usecols,
+        parse_dates=date_cols,
+    )
+
+
+def calculate_review_concentration(listings_df, reviews_df, output_path = "data/processed/kpi_review_concentration.csv"):
+    rv = reviews_df.copy()
+
+    rv["date"] = pd.to_datetime(rv["date"], errors="coerce")
+    rv["year"] = rv["date"].dt.to_period('Y')
+    df = rv.merge(listings_df[["id", "analysis_area_processed"]], left_on = "listing_id", right_on = "id", how = "inner")
+
+    area_yearly_reviews = df.groupby(["year", "analysis_area_processed"]).size().reset_index(name="area_reviews")
     city_yearly_reviews = df.groupby("year").size().reset_index(name="city_total_reviews")
 
     stats = pd.merge(area_yearly_reviews, city_yearly_reviews, on="year")
@@ -19,7 +43,7 @@ def calculate_review_concentration(listings_df, reviews_df, output_path = "data/
 
     concentration_pivot = stats.pivot(
         index="year", 
-        columns="analysis_area", 
+        columns="analysis_area_processed", 
         values="concentration_pct"
     ).fillna(0)
 
@@ -41,23 +65,25 @@ def _dormant_rate_by_group(df, group_col):
 def calculate_dormant_listing_rate_single_snapshot(listings_df, snapshot=None):
     df = listings_df.copy()
 
-    df["last_review"] = pd.to_datetime(df["last_review"])
-    df["last_scraped"] = pd.to_datetime(df["last_scraped"])
-    days_since_review = (df["last_scraped"] - df["last_review"]).dt.days
+    df["last_review_processed"] = pd.to_datetime(df["last_review_processed"], errors="coerce")
+    df["last_scraped_processed"] = pd.to_datetime(df["last_scraped_processed"], errors="coerce")
+    days_since_review = (df["last_scraped_processed"] - df["last_review_processed"]).dt.days
 
     dormant_condition = (
-        (df["number_of_reviews_ltm"] == 0)
-        & (df["last_review"].isna() | (days_since_review > 540))
+        (df["number_of_reviews_ltm_processed"] == 0)
+        & (df["last_review_processed"].isna() | (days_since_review > 540))
     )
 
     df["is_dormant"] = np.where(dormant_condition, 1, 0)
 
     # Lát cắt 1: Theo analysis_area
-    area_kpi = _dormant_rate_by_group(df, "analysis_area")
-    area_kpi.insert(1, "room_type", "All")
+    area_kpi = _dormant_rate_by_group(df, "analysis_area_processed")
+    area_kpi = area_kpi.rename(columns={"analysis_area_processed": "analysis_area"})
+    area_kpi.insert(1, "room_type", "All")  
 
     # Lát cắt 2: Theo room_type trên toàn thành phố (2 dòng mỗi snapshot)
-    room_kpi = _dormant_rate_by_group(df, "room_type")
+    room_kpi = _dormant_rate_by_group(df, "room_type_processed")
+    room_kpi = room_kpi.rename(columns={"room_type_processed": "room_type"})
     room_kpi.insert(0, "analysis_area", "All")
 
     kpi_df = pd.concat([area_kpi, room_kpi], ignore_index=True)
@@ -75,10 +101,7 @@ def calculate_dormant_listing_rate_over_time(
 
     all_kpi_results = []
     for date in snapshots:
-        base_dir = Path(__file__).resolve().parent.parent
-        folder_path = base_dir / "data" / "raw" / str(date)
-
-        listings_df = pd.read_csv(folder_path / "listings.csv.gz")
+        listings_df = _read_processed_listings(date)
         kpi_1_thang = calculate_dormant_listing_rate_single_snapshot(listings_df, snapshot=date)
         all_kpi_results.append(kpi_1_thang)
 
@@ -94,11 +117,11 @@ def calculate_dormant_listing_rate_over_time(
 
 def _overpriced_rate_by_group(df, group_col, premium_ratio=1.25, low_value_threshold=4.6):
     sub_df = df.copy()
-    sub_df["area_median_price"] = sub_df.groupby(group_col, observed=False)["price"].transform("median")
-    sub_df["price_index"] = sub_df["price"] / sub_df["area_median_price"]
+    sub_df["area_median_price"] = sub_df.groupby(group_col, observed=False)["price_processed"].transform("median")
+    sub_df["price_index"] = sub_df["price_processed"] / sub_df["area_median_price"]
 
     sub_df["is_premium"] = sub_df["price_index"] >= premium_ratio
-    sub_df["is_overpriced"] = sub_df["is_premium"] & (sub_df["review_scores_value"] < low_value_threshold)
+    sub_df["is_overpriced"] = sub_df["is_premium"] & (sub_df["review_scores_value_processed"] < low_value_threshold)
 
     kpi_df = sub_df.groupby(group_col, observed=False).agg(
         total_listings=("id", "count"),
@@ -121,23 +144,21 @@ def calculate_overpriced_rate(
 ):
     df = listings_df.copy()
 
-    df["price"] = pd.to_numeric(
-        df["price"].astype(str).str.replace(r"[^0-9.]", "", regex=True),
-        errors="coerce",
-    )
-
-    df = df[df["price"].notna() & df["review_scores_value"].notna()].copy()
+    df = exclude_nan_price(df)
+    df = exclude_missing_review_scores(df)
 
     # Lát cắt 1: Theo analysis_area
     area_kpi = _overpriced_rate_by_group(
-        df, "analysis_area", premium_ratio=premium_ratio, low_value_threshold=low_value_threshold
+        df, "analysis_area_processed", premium_ratio=premium_ratio, low_value_threshold=low_value_threshold
     )
+    area_kpi = area_kpi.rename(columns={"analysis_area_processed": "analysis_area"})
     area_kpi.insert(1, "room_type", "All")
 
     # Lát cắt 2: Theo room_type trên toàn thành phố
     room_kpi = _overpriced_rate_by_group(
-        df, "room_type", premium_ratio=premium_ratio, low_value_threshold=low_value_threshold
+        df, "room_type_processed", premium_ratio=premium_ratio, low_value_threshold=low_value_threshold
     )
+    room_kpi = room_kpi.rename(columns={"room_type_processed": "room_type"})
     room_kpi.insert(0, "analysis_area", "All")
 
     kpi_df = pd.concat([area_kpi, room_kpi], ignore_index=True)
@@ -148,8 +169,8 @@ def calculate_overpriced_rate(
 def _revpar_by_group(df, group_col):
     kpi_df = df.groupby(group_col, observed=False).agg(
         total_listings=("id", "count"),                                   # N_{k,t}
-        total_revenue=("estimated_revenue_l365d", "sum"),                 # Σ doanh thu 365 ngày
-        occupied_nights=("estimated_occupancy_l365d", "sum"),             # Σ đêm có khách (ước tính)
+        total_revenue=("estimated_revenue_l365d_processed", "sum"),                 # Σ doanh thu 365 ngày
+        occupied_nights=("estimated_occupancy_l365d_processed", "sum"),             # Σ đêm có khách (ước tính)
     ).reset_index()
 
     # RevPAR = Σ doanh thu / (N × 365)
@@ -168,14 +189,15 @@ def calculate_revpar_single_snapshot(
     output_path="data/processed/kpi_revpar.csv",
 ):
     df = listings_df.copy()
-    df = df[df["estimated_revenue_l365d"].notna()].copy()
 
     # Lát cắt 1: Theo analysis_area
-    area_kpi = _revpar_by_group(df, "analysis_area")
+    area_kpi = _revpar_by_group(df, "analysis_area_processed")
+    area_kpi = area_kpi.rename(columns={"analysis_area_processed": "analysis_area"})
     area_kpi.insert(1, "room_type", "All")
 
     # Lát cắt 2: Theo room_type trên toàn thành phố
-    room_kpi = _revpar_by_group(df, "room_type")
+    room_kpi = _revpar_by_group(df, "room_type_processed")
+    room_kpi = room_kpi.rename(columns={"room_type_processed": "room_type"})
     room_kpi.insert(0, "analysis_area", "All")
 
     kpi_df = pd.concat([area_kpi, room_kpi], ignore_index=True)
@@ -186,16 +208,16 @@ def calculate_revpar_single_snapshot(
 
 def calculate_professional_host_share_single_snapshot(listings_df, snapshot=None, pro_threshold=10):
 
-    df = listings_df[listings_df["calculated_host_listings_count"].notna()].copy()
+    df = listings_df[listings_df["calculated_host_listings_count_processed"].notna()].copy()
 
     df["host_tier"] = pd.cut(
-        df["calculated_host_listings_count"],
+        df["calculated_host_listings_count_processed"],
         bins=[0, 1, pro_threshold - 1, np.inf],
         labels=["individual", "small_multi", "professional"],
     )
 
     kpi_df = (
-        df.groupby(["analysis_area", "host_tier"], observed=False)
+        df.groupby(["analysis_area_processed", "host_tier"], observed=False)
         .size()
         .unstack("host_tier")
     )
@@ -207,7 +229,7 @@ def calculate_professional_host_share_single_snapshot(listings_df, snapshot=None
             kpi_df[f"{tier}_listings"] / kpi_df["total_listings"] * 100
         ).round(2)
 
-    kpi_df = kpi_df.reset_index()
+    kpi_df = kpi_df.reset_index().rename(columns={"analysis_area_processed": "analysis_area"})
     kpi_df.insert(0, "snapshot", str(snapshot))
     return kpi_df
 
@@ -224,11 +246,10 @@ def calculate_professional_host_share_over_time(
     if latest_only:
         snapshots = snapshots[-1:]
 
-    cols = ["id", "analysis_area", "calculated_host_listings_count"]
+    cols = ["id", "analysis_area_processed", "calculated_host_listings_count_processed"]
     all_results = []
     for date in snapshots:
-        folder_path = Path(__file__).resolve().parent.parent / "data" / "raw" / str(date)
-        listings_df = pd.read_csv(folder_path / "listings.csv.gz", usecols=cols)
+        listings_df = _read_processed_listings(date, usecols=cols)
         all_results.append(calculate_professional_host_share_single_snapshot(
             listings_df, snapshot=date, pro_threshold=pro_threshold))
 
@@ -242,7 +263,7 @@ def calculate_top_n_host_share_single_snapshot(
     top_n=10,
     output_path=None,
 ):
-    df = listings_df[listings_df["host_id"].notna()].copy()
+    df = listings_df.copy()
 
     host_counts = df.groupby("host_id")["id"].count()
     total_hosts = int(host_counts.shape[0])
@@ -279,8 +300,7 @@ def calculate_top_n_host_share_over_time(
     cols = ["id", "host_id"]
     all_results = []
     for date in snapshots:
-        folder_path = Path(__file__).resolve().parent.parent / "data" / "raw" / str(date)
-        listings_df = pd.read_csv(folder_path / "listings.csv.gz", usecols=cols)
+        listings_df = _read_processed_listings(date, usecols=cols)
         all_results.append(
             calculate_top_n_host_share_single_snapshot(
                 listings_df, snapshot=date, top_n=top_n
@@ -297,12 +317,17 @@ def calculate_unavailability_rate(
     output_path="data/processed/kpi_unavailability_rate.csv",
 ):
     df = calendar_df.merge(
-        listings_df[["id", "analysis_area"]],
+        listings_df[["id", "analysis_area_processed"]],
         left_on="listing_id", right_on="id", how="inner",
     )
-    df["date"] = pd.to_datetime(df["date"])
-    df["year_month"] = df["date"].dt.to_period("M")
-    df["is_unavailable"] = (df["available"] == "f").astype(int)
+    
+    df["clean_date"] = pd.to_datetime(df["clean_date"], errors="coerce")
+    df["clean_available"] = df["clean_available"].map(
+        {True: True, False: False, "True": True, "False": False, "t": True, "f": False}
+    )
+    df = df.dropna(subset=["clean_date", "clean_available"])
+    df["year_month"] = df["clean_date"].dt.to_period("M")
+    df["is_unavailable"] = (~df["clean_available"].astype(bool)).astype(int)
 
     # giữ các tháng đủ ngày
     coverage = df.groupby("year_month").agg(rows=("listing_id", "size"), n=("listing_id", "nunique"))
@@ -310,11 +335,13 @@ def calculate_unavailability_rate(
     is_full = coverage["days_per_listing"] >= coverage.index.days_in_month
     df = df[df["year_month"].isin(coverage.index[is_full])]
 
-    kpi_df = df.groupby(["year_month", "analysis_area"]).agg(
+    kpi_df = df.groupby(["year_month", "analysis_area_processed"]).agg(
         n_listings=("listing_id", "nunique"),
         total_days=("listing_id", "count"),
         unavailable_days=("is_unavailable", "sum"),
     ).reset_index()
+
+    kpi_df = kpi_df.rename(columns={"analysis_area_processed": "analysis_area"})
 
     kpi_df["unavailability_rate_%"] = (
         kpi_df["unavailable_days"] / kpi_df["total_days"] * 100
