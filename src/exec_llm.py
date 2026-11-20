@@ -13,7 +13,7 @@ def read_reviews(path):
 
 def exec_llm(config, config_path):
    snapshot = config.get("snapshots")[0]
-   file_path = PROCESSED_DIR / snapshot / "reviews.csv.gz"
+   file_path = PROCESSED_DIR / str(snapshot) / "processed_reviews.csv"
    reviews = read_reviews(file_path)
    reviews_to_label = reviews.loc[reviews["Mẫu LLM"].str.strip().str.lower()=='x', ["id", "comments"]]
    out = llm(reviews_to_label, config_path)

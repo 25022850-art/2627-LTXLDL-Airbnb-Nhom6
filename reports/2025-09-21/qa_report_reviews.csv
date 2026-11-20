@@ -1,0 +1,7 @@
+quy_tac,so_dong,ghi_chu
+review_id_invalid,0,id trống
+review_duplicate_within,0,id lặp lại (tính từ lần xuất hiện thứ 2)
+review_duplicate_conflict,0,cùng id nhưng nội dung dòng khác nhau (xung đột)
+review_date_missing,0,date trống
+review_date_invalid,0,date không đúng định dạng hoặc vô lý (NaT sau pd.to_datetime)
+review_outside_listings,0,listing_id của reviews không có trong listings

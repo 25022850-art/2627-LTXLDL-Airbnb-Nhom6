@@ -312,7 +312,7 @@ def clean_listings(df: pd.DataFrame, report_path, out_path):
     """Trả về bảng trước QA, bảng sau QA và các cờ theo dòng."""
     before = df.reset_index(drop=True).copy()
 
-    for field in ('analysis_area', 'room_type', 'price'):
+    for field in ('analysis_area', 'room_type'):
         before[field] = clean_text(before[field])
 
     flags = id_flags(before, 'listing')
