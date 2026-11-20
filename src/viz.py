@@ -143,7 +143,7 @@ def plot_overpriced_analysis(df: pd.DataFrame, output_path: Path):
         h = bar.get_height()
         ax2.text(
             bar.get_x() + bar.get_width() / 2, h + 0.6,
-            f"{h:.1f}%\n(Med: ${row['area_median_price']:.0f})\n()",
+            f"{h:.1f}%\n(Med: ${row['area_median_price']:.0f})\n(Listing Count: {int(row['overpriced_listings'])})",
             ha="center", va="bottom", fontsize=8.5
         )
 
