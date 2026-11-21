@@ -15,6 +15,9 @@ try:
         label_distribution,
         aspect_sentiment_correlation,
     )
+    from src.qa import (
+        concat_calendar
+    )
 except ImportError:
     from kpi import (
         calculate_review_concentration,
@@ -26,6 +29,9 @@ except ImportError:
         calculate_unavailability_rate,
         label_distribution,
         aspect_sentiment_correlation,
+    )
+    from qa import (
+        concat_calendar
     )
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -116,9 +122,10 @@ def exec_kpi():
         output_path=OUTPUT_DIR / "kpi_top_n_host_share.csv",
     )
 
+    full_calendar = concat_calendar()
     #7. KPI tỉ lệ phòng không khả dụng 
     unavailability_rate_df = calculate_unavailability_rate(
-    calendar,
+    full_calendar,
     listings,
     output_path=OUTPUT_DIR / "kpi_unavailability_rate.csv",
     )
