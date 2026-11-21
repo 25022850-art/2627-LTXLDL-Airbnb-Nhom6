@@ -135,6 +135,7 @@ def label(cache_path, rv, client, model):
         lines=True, 
         mode='a', 
     )   
+    print("Gọi thành công llm")
     time.sleep(4)
     return result_dict 
 

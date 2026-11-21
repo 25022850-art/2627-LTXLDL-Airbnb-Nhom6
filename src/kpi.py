@@ -6,9 +6,9 @@ import json
 
 
 try:
-    from src.qa import exclude_nan_price, exclude_missing_review_scores, exclude_missing_days_in_month
+    from src.qa import exclude_nan_price, exclude_missing_review_scores, exclude_missing_days_in_month, exclude_nan_estimated_rev
 except ImportError:
-    from qa import exclude_nan_price, exclude_missing_review_scores, exclude_missing_days_in_month
+    from qa import exclude_nan_price, exclude_missing_review_scores, exclude_missing_days_in_month, exclude_nan_estimated_rev
 
 
 def _read_processed_listings(snapshot, usecols=None):
@@ -78,7 +78,7 @@ def calculate_dormant_listing_rate_single_snapshot(listings_df, snapshot=None):
         & (df["last_review_processed"].isna() | (days_since_review > 540))
     )
 
-    df["is_dormant"] = np.where(dormant_condition, 1, 0)
+    df["is_dormant"] = dormant_condition
 
     # Lát cắt 1: Theo analysis_area
     area_kpi = _dormant_rate_by_group(df, "analysis_area_processed")
@@ -121,15 +121,15 @@ def calculate_dormant_listing_rate_over_time(
 
 def _overpriced_rate_by_group(df, group_col, premium_ratio=1.25, low_value_threshold=4.6):
     sub_df = df.copy()
-    sub_df["area_median_price"] = sub_df.groupby(group_col, observed=False)["price_processed"].transform("median")
-    sub_df["price_index"] = sub_df["price_processed"] / sub_df["area_median_price"]
+    sub_df["group_median_price"] = sub_df.groupby(group_col, observed=False)["price_processed"].transform("median")
+    sub_df["price_index"] = sub_df["price_processed"] / sub_df["group_median_price"]
 
     sub_df["is_premium"] = sub_df["price_index"] >= premium_ratio
     sub_df["is_overpriced"] = sub_df["is_premium"] & (sub_df["review_scores_value_processed"] < low_value_threshold)
 
     kpi_df = sub_df.groupby(group_col, observed=False).agg(
         total_listings=("id", "count"),
-        area_median_price=("area_median_price", "first"),
+        group_median_price=("group_median_price", "first"),
         premium_listings=("is_premium", "sum"),          
         overpriced_listings=("is_overpriced", "sum"),   
     ).reset_index()
@@ -193,7 +193,8 @@ def calculate_revpar_single_snapshot(
     output_path="data/processed/kpi_revpar.csv",
 ):
     df = listings_df.copy()
-
+    df = exclude_nan_estimated_rev(df)
+    
     # Lát cắt 1: Theo analysis_area
     area_kpi = _revpar_by_group(df, "analysis_area_processed")
     area_kpi = area_kpi.rename(columns={"analysis_area_processed": "analysis_area"})
@@ -212,7 +213,7 @@ def calculate_revpar_single_snapshot(
 
 def calculate_professional_host_share_single_snapshot(listings_df, snapshot=None, pro_threshold=10):
 
-    df = listings_df[listings_df["calculated_host_listings_count_processed"].notna()].copy()
+    df = listings_df.copy()
 
     df["host_tier"] = pd.cut(
         df["calculated_host_listings_count_processed"],
@@ -327,12 +328,9 @@ def calculate_unavailability_rate(
     )
     
     df["clean_date"] = pd.to_datetime(df["clean_date"], errors="coerce")
-    df["clean_available"] = df["clean_available"].map(
-        {True: True, False: False, "True": True, "False": False, "t": True, "f": False}
-    )
-    df = df.dropna(subset=["clean_date", "clean_available"])
+
     df["year_month"] = df["clean_date"].dt.to_period("M")
-    df["is_unavailable"] = (~df["clean_available"].astype(bool)).astype(int)
+    df["is_unavailable"] = ~df["clean_available"]
 
     # giữ các tháng đủ ngày
     df = exclude_missing_days_in_month(df)
@@ -351,7 +349,6 @@ def calculate_unavailability_rate(
 
     kpi_df = kpi_df.sort_values(["year_month", "analysis_area"]).reset_index(drop=True)
     kpi_df.to_csv(output_path, index=False)
-    print(f"Đã lưu KPI Tỷ lệ không khả dụng tại: {output_path}")
     return kpi_df
 
 
@@ -384,10 +381,10 @@ def aspect_sentiment_correlation(llm_output, output_path = "data/processed/kpi_a
     aspects = ['accessibility', 'noise']
     sentiment_col = 'general_sentiment'
 
-    negative_labels = ['Mixed', 'Negative']
+    non_positive_labels = ['Mixed', 'Negative']
 
     # Baseline: non-positive rate across all reviews
-    baseline = df[sentiment_col].isin(negative_labels).mean()
+    baseline = df[sentiment_col].isin(non_positive_labels).mean()
 
     results = []
 
