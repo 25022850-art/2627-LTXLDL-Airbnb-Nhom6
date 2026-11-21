@@ -1,0 +1,11 @@
+id,host_id,analysis_area,room_type,price,minimum_nights,maximum_nights,number_of_reviews_ltm,number_of_reviews,review_scores_value,estimated_revenue_l365d,estimated_occupancy_l365d,calculated_host_listings_count,last_scraped,last_review
+1,1001,A01,Private room,60,1,30,3,4,4.8,12000,100,15,2026-06-23,2026-05-30
+2,1001,A01,Private room,80,2,60,2,2,4.4,9000,90,15,2026-06-23,2026-04-15
+3,1002,A01,Entire home/apt,100,1,30,0,2,4.9,15000,150,10,2026-06-23,2024-12-30
+4,1002,A01,Entire home/apt,100,3,90,0,2,4.7,0,0,10,2026-06-23,2024-12-29
+5,1003,A01,Entire home/apt,125,1,365,3,4,4.6,20000,200,9,2026-06-23,2026-01-10
+6,1004,A01,Entire home/apt,200,2,30,0,0,4.5,0,0,1,2026-06-23,
+7,1001,A02,Private room,50,1,30,0,1,4.8,5000,50,15,2026-06-23,2025-06-20
+8,1003,A02,Private room,60,2,60,0,1,4.7,3000,50,9,2026-06-23,2023-08-15
+9,1005,A02,Entire home/apt,70,1,30,0,2,4.9,0,0,2,2026-06-23,2024-01-01
+10,1006,A02,Entire home/apt,300,5,90,0,0,,0,0,1,2026-06-23,

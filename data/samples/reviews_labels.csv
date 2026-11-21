@@ -1,0 +1,19 @@
+id,general_sentiment,accessibility,noise
+1,Positive,Highly accessible,Acceptable
+2,Positive,Not mentioned,Not mentioned
+3,Mixed,Poor access,Noisy
+4,Positive,Highly accessible,Quiet
+5,Negative,Poor access,Noisy
+6,Positive,Not mentioned,Quiet
+7,Positive,Highly accessible,Acceptable
+8,Mixed,Neutral,Noisy
+9,Negative,Not mentioned,Noisy
+10,Positive,Not mentioned,Not mentioned
+11,Positive,Highly accessible,Quiet
+12,Mixed,Poor access,Acceptable
+13,Positive,Neutral,Quiet
+14,Positive,Not mentioned,Not mentioned
+15,Negative,Poor access,Noisy
+16,Positive,Not mentioned,Not mentioned
+17,Positive,Highly accessible,Not mentioned
+18,Mixed,Neutral,Quiet
