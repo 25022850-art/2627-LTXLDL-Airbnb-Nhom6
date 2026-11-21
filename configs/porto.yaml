@@ -12,6 +12,7 @@ llm:
   cache: data/processed/llm_cache.jsonl
 
 kpi:
+  snapshot : "2026-06-23"
   overpriced_rate:
     premium_ratio: 1.25
     low_value_threshold: 4.6
