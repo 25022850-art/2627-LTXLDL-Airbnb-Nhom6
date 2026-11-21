@@ -7,11 +7,12 @@ listings_id_sheet: "https://docs.google.com/spreadsheets/d/1xaMiF78Ta90IWm2oHESK
 
 llm:
   provider: gemini-3.5-flash-lite
-  sample_size: 1000
+  sample_size: 3000
   aspects: [general_sentiment, accessibility, noise]
   cache: data/processed/llm_cache.jsonl
 
 kpi:
+  snapshot : "2026-06-23"
   overpriced_rate:
     premium_ratio: 1.25
     low_value_threshold: 4.6
@@ -19,3 +20,13 @@ kpi:
     pro_threshold: 10
   top_n_host:
     top_n: 10
+
+qa:
+  # ID của những chỗ ở có giá bất thường so với những gì chỗ đó có
+  abnormal_price_listings_id: ["31186053", "688857223649708887", "49168183"]
+  min_nights_upper_bound: 365
+  exchange_rate: 0.91
+  room_types: ['Entire home/apt', 'Private room']
+  areas: ['A01', 'A02', 'A03', 'A04', 'A05', 'A06', 'A07', 'A08']
+
+seed: 42

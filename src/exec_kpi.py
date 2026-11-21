@@ -38,13 +38,17 @@ with open(CONFIG_PATH, "r", encoding="utf-8") as f:
     config = yaml.safe_load(f)
 kpi_cfg = config["kpi"]
 
-SNAPSHOT = "2026-06-23"
+SNAPSHOT = kpi_cfg["snapshot"]
 snapshot_folder = PROCESSED_DIR / str(SNAPSHOT)
 
 calendar_path = snapshot_folder / "processed_calendar.csv"
 listings_path = snapshot_folder / "processed_listings.csv"
 reviews_path = snapshot_folder / "processed_reviews.csv"
-llm_path = PROCESSED_DIR / "llm_output.csv"
+
+llm_output_path = PROCESSED_DIR / "llm_output.csv"
+llm_cache_path = PROCESSED_DIR / "llm_cache.jsonl"
+
+llm_path = llm_output_path if llm_output_path.exists() else llm_cache_path
 
 def exec_kpi():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -65,9 +69,10 @@ def exec_kpi():
         usecols=["id", "listing_id", "date"],
         parse_dates=["date"],
     )
-    llm_output = pd.read_csv(
-        llm_path, encoding='utf-8',
-    )
+    if llm_path.suffix == ".jsonl":
+        llm_df = pd.read_json(llm_path, lines=True)
+    else:
+        llm_df = pd.read_csv(llm_path)
 
     # 1. KPI Review Concentration
     review_stats, review_concentration_pivot = calculate_review_concentration(
@@ -120,13 +125,13 @@ def exec_kpi():
 
     #8. KPI tỉ lệ các nhãn llm 
     label_distribution_df = label_distribution(
-        llm_output=llm_output,
+        llm_output=llm_df,
         output_path= OUTPUT_DIR / "kpi_label_distribution.csv"
     )
 
     #9 KPI tỉ lệ các nhãn trong aspects là review non-positive
     aspect_sentiment_correlation_df = aspect_sentiment_correlation(
-        llm_output = llm_output,
+        llm_output = llm_df,
         output_path= OUTPUT_DIR / "kpi_aspect_sentiment_correlation.csv"
     )
 
