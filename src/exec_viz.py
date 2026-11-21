@@ -40,7 +40,7 @@ def exec_viz():
     #kpi_df = csv_to_df(kpi_csv_path)
 
     # Load Overpriced Analysis data
-    print("Tạo biểu đồ cột cho overprice")
+    #print("Tạo biểu đồ cột cho overprice")
     overpriced_csv_path = csv_folder / "kpi_overpriced_rate.csv"
     overpriced_df = csv_to_df(overpriced_csv_path)
     overpriced_output_path = output_folder / "overpriced_analysis.png"

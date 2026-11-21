@@ -8,7 +8,7 @@ from src.exec_baseline import exec_baseline
 from src.exec_llm import exec_llm
 from src.exec_evaluate import exec_eval
 from src.exec_kpi import exec_kpi
-
+from src.exec_viz import exec_viz
 
 # PROJECT_ROOT = Path(__file__).resolve().parent
 # CONFIG_PATH = PROJECT_ROOT / "configs" / "porto.yaml"
@@ -54,6 +54,10 @@ def run_pipeline():
     print("Bước: Tính toán KPI")
     exec_kpi()
     print("Hoàn thành việc tính KPI")
+
+    print("Bước: Tạo biểu đồ")
+    exec_viz()
+    print("Hoàn thành việc tạo biểu đồ, các hình ảnh png có thể tìm thấy trong thư mục figures")
     
     print("\nHoàn tất pipeline.")
 
