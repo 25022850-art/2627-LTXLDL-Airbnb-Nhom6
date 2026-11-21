@@ -352,25 +352,29 @@ def calculate_unavailability_rate(
     return kpi_df
 
 
-def label_distribution(llm_output, output_path="data/processed/kpi_label_distribution.csv"):
+def label_distribution_area(llm_output, output_path="data/processed/kpi_label_distribution_area.csv"):
     df = llm_output.copy()
-    columns = ['general_sentiment', 'accessibility', 'noise']
+    aspects = ['general_sentiment', 'accessibility', 'noise']
 
     results = []
 
-    for col in columns:
-        counts = df[col].value_counts()
+    for area, area_df in df.groupby('analysis_area_processed'):
+        area_total = len(area_df)
 
-        for label, count in counts.items():
-            if label == 'Not mentioned':
-                continue
+        for aspect in aspects:
+            counts = area_df[aspect].value_counts()
 
-            results.append({
-                'aspect': col,
-                'label': label,
-                'count': count,
-                'percentage': round(count / len(df) * 100, 2)
-            })
+            for label, count in counts.items():
+                if label == 'Not mentioned':
+                    continue
+
+                results.append({
+                    'analysis_area_processed': area,
+                    'aspect': aspect,
+                    'label': label,
+                    'count': count,
+                    'percentage': round(count / area_total * 100, 2)
+                })
 
     result_df = pd.DataFrame(results)
     result_df.to_csv(output_path, index=False)
