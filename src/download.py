@@ -101,6 +101,17 @@ def download_raw(config_path):
 
             assert save_file.exists(), f"Thieu file {snapshot}/{file_name}"
             print(f"Đã tải và lọc xong {file_name} mốc {snapshot}.")
+            
+        geojson_path = snapshot_folder / "neighbourhoods.geojson"
+        geojson_url = f"https://data.insideairbnb.com/{data_root}/{snapshot}/visualisations/neighbourhoods.geojson"
+
+        response = requests.get(geojson_url, timeout=20)
+        response.raise_for_status() 
+        geojson_path.write_bytes(response.content)
+
+        assert geojson_path.exists(), f"Thieu file {geojson_path}"
+        print(f"Đã tải xong neighbourhoods.geojson mốc {snapshot}.")
+        
 
 if __name__ == "__main__":  
     config_path = Path(__file__).resolve().parent.parent / "configs" / "porto.yaml"
