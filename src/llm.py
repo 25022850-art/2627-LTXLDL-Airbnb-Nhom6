@@ -91,7 +91,7 @@ def get_cache_path(config):
 def get_llm_cache(cache_path):
     try:
         if cache_path.exists():
-            return pd.read_json(cache_path, lines=True, dtype=False) 
+            return pd.read_json(cache_path, lines=True, dtype={"listing_id": str}) 
         else : 
             return pd.DataFrame(columns=[
                 "comments", 
@@ -152,14 +152,14 @@ def llm(rv, config_path):
     rv = rv.copy()
     result = rv["comments"].apply(lambda comment: label(cache_path, comment, client, model))
     result = result.apply(pd.Series)
-    result = result.join(rv[["id"]])
+    result["id"] = rv["id"]
     
     result.to_csv(PROCESSED_DIR / "llm_output.csv", index=False, encoding="utf-8")
     flags = audit_llm_predictions(result)
-    flags.to_csv(REPORT_DIR / "audit_llm.csv")
+    flags.to_csv(REPORT_DIR / "audit_llm.csv", encoding="utf-8", index=False)
 
-    audit_summary = flags[["EMPTY_TEXT_WITH_ASPECT", "SHORT_TEXT_MULTI_ASPECT"]].sum()
-    audit_summary.to_csv(REPORT_DIR / "audit_llm_summary.csv")
+    audit_summary = flags[["EMPTY_TEXT_WITH_ASPECT", "SHORT_TEXT_MULTI_ASPECT"]].sum().reset_index(name="so_dong")
+    audit_summary.to_csv(REPORT_DIR / "audit_llm_summary.csv", encoding="utf-8", index=False)
     return result
 
 def audit_llm_predictions(df):
