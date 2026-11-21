@@ -98,6 +98,8 @@ def download_raw(config_path):
                 check_reviews(merged, snapshot)
 
             merged.to_csv(save_file, index=False, compression='gzip', encoding='utf-8')
+
+            assert save_file.exists(), f"Thieu file {snapshot}/{file_name}"
             print(f"Đã tải và lọc xong {file_name} mốc {snapshot}.")
 
 if __name__ == "__main__":  
