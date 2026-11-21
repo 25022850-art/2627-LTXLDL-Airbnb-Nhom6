@@ -55,7 +55,7 @@ GHI_CHU_LISTINGS = {
     "last_scraped_invalid": "định dạng ngày không hợp lệ (NaT sau pd.to_datetime)",
     "last_review_missing": "ô trống/thiếu",
     "last_review_invalid": "định dạng ngày không hợp lệ (NaT sau pd.to_datetime)",
-    "price_missing": "ô giá trống; điền bằng median theo (analysis_area, room_type)",
+    "price_missing": "ô giá trống; gọi hàm loại các dòng này khi tính KPI liên quan",
     "price_parse_error": "có giá trị nhưng không ép được sang số sau khi bỏ '$' và ','",
     "price_non_positive": "giá <= 0",
     "sus_price": "giá bất thường so với những gì chỗ ở có",
