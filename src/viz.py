@@ -27,15 +27,31 @@ def setup_plot_style():
         "legend.fontsize": 9,
         "legend.title_fontsize": 9.5,
 
-        # 2. Khung viền (Spines)
+        # 2. Khung viền (Spines) & Ticks: bỏ trên/phải, làm dịu trái/dưới
         "axes.spines.top": False,
         "axes.spines.right": False,
+        "axes.linewidth": 0.8,
+        "axes.edgecolor": "#9A9A9A",
+        "xtick.color": "#9A9A9A",         # màu vạch tick
+        "ytick.color": "#9A9A9A",
+        "xtick.labelcolor": "#222222",    # chữ tick giữ đậm để dễ đọc
+        "ytick.labelcolor": "#222222",
+        "xtick.major.size": 3,
+        "ytick.major.size": 3,
 
-        # 3. Lưới (Grid)
+        # 3. Lưới (Grid): mảnh, nhạt, nằm dưới dữ liệu
         "axes.grid": False,
         "axes.axisbelow": True,
-        "grid.linestyle": "--",
-        "grid.alpha": 0.4,
+        "grid.color": "#E4E4E4",
+        "grid.linestyle": "-",
+        "grid.linewidth": 0.7,
+        "grid.alpha": 1.0,
+
+        # 3b. Legend: nền trắng mờ, bỏ viền đen/xám
+        "legend.frameon": True,
+        "legend.facecolor": "white",
+        "legend.edgecolor": "none",
+        "legend.framealpha": 0.9,
 
         # 4. Đường vẽ (Line plots)
         "lines.linewidth": 2.2,
@@ -44,7 +60,6 @@ def setup_plot_style():
         "savefig.dpi": 300,
         "savefig.bbox": "tight",
     })
-    
 setup_plot_style()
 
 def save_figure(fig: plt.Figure, output_path: str | Path):
@@ -180,7 +195,7 @@ def plot_unavailability_rate(df: pd.DataFrame, output_path: str | Path):
     ax1.set_xticklabels(months, rotation=30, ha="right")
     ax1.set_ylabel("Unavailability Rate (%)")
     ax1.set_title("Xu hướng Unavailability Rate (%) theo Tháng")
-    ax1.grid(True)
+    ax1.grid(True, axis="y")
     ax1.legend(title="Area", bbox_to_anchor=(1.02, 1), loc="upper left", frameon=True)
 
     # --- BIỂU ĐỒ 2 (PHẢI): Heatmap ma trận Khu vực x Tháng ---
@@ -191,6 +206,9 @@ def plot_unavailability_rate(df: pd.DataFrame, output_path: str | Path):
     ax2.set_yticks(np.arange(len(areas)))
     ax2.set_yticklabels(areas)
     ax2.set_title("Heatmap Unavailability Rate (%)")
+    for spine in ax2.spines.values():
+        spine.set_visible(False)
+    ax2.tick_params(length=0)
 
     threshold = np.nanmean(matrix)
     for r in range(len(areas)):
@@ -205,6 +223,8 @@ def plot_unavailability_rate(df: pd.DataFrame, output_path: str | Path):
 
     cbar = fig.colorbar(im, ax=ax2, fraction=0.046, pad=0.04)
     cbar.set_label("Rate (%)", fontsize=9)
+    cbar.outline.set_visible(False)
+    cbar.ax.tick_params(length=0)
 
     plt.tight_layout()
     save_figure(fig, output_path)
