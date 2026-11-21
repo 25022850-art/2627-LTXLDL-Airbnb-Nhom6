@@ -24,8 +24,11 @@ def exec_eval_baseline():
     return pd.DataFrame([result])
 
 def exec_eval_llm():
+    if llm_path.suffix == ".jsonl":
+        preds = pd.read_json(llm_path, lines=True, dtype={"id": str})
+    else:
+        preds = pd.read_csv(llm_path, encoding="utf-8", dtype={"id": str})
     nhan_tay = pd.read_csv(nhan_tay_path, encoding="utf-8", dtype={"id": str})
-    preds = pd.read_csv(llm_path, encoding="utf-8", dtype={"id": str})
     result = evaluate(preds, nhan_tay)
     return pd.DataFrame([result])
 

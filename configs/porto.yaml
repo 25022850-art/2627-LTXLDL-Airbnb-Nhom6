@@ -28,5 +28,6 @@ qa:
   exchange_rate: 0.91
   room_types: ['Entire home/apt', 'Private room']
   areas: ['A01', 'A02', 'A03', 'A04', 'A05', 'A06', 'A07', 'A08']
+  calendar_key : ["listing_id", "date"]
 
 seed: 42

@@ -427,3 +427,21 @@ def exclude_nan_estimated_rev(df):
     out = df.copy()
     out = out.loc[out["estimated_revenue_l365d_processed"].notna()]
     return out
+
+
+def exclude_duplicated_for_calendar(df):
+    out = df.sort_values("snapshot")
+    key = config.get("qa").get("calendar_key")
+    out = out.drop_duplicates(subset=key, keep="last")
+    return out.reset_index(drop=True)
+
+
+def concat_calendar():
+    snapshots = config.get("snapshots")
+    PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
+    parts = []
+    for snapshot in snapshots:
+        part = pd.read_csv(PROCESSED_DIR / str(snapshot) / "processed_calendar.csv", encoding="utf-8", dtype={"listing_id": str})
+        part.insert(0, "snapshot", pd.to_datetime(snapshot))
+        parts.append(part)
+    return exclude_duplicated_for_calendar(pd.concat(parts, ignore_index=True))
