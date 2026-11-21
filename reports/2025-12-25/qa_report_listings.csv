@@ -25,7 +25,7 @@ last_scraped_missing,0,ô trống/thiếu
 last_scraped_invalid,0,định dạng ngày không hợp lệ (NaT sau pd.to_datetime)
 last_review_missing,30,ô trống/thiếu
 last_review_invalid,0,định dạng ngày không hợp lệ (NaT sau pd.to_datetime)
-price_missing,1000,"ô giá trống; điền bằng median theo (analysis_area, room_type)"
+price_missing,1000,ô giá trống; gọi hàm loại các dòng này khi tính KPI liên quan
 price_parse_error,0,"có giá trị nhưng không ép được sang số sau khi bỏ '$' và ','"
 price_non_positive,0,giá <= 0
 sus_price,3,giá bất thường so với những gì chỗ ở có

@@ -12,7 +12,7 @@ try:
         calculate_professional_host_share_over_time,
         calculate_top_n_host_share_over_time,
         calculate_unavailability_rate,
-        label_distribution,
+        label_distribution_area,
         aspect_sentiment_correlation,
     )
     from src.qa import (
@@ -27,7 +27,7 @@ except ImportError:
         calculate_professional_host_share_over_time,
         calculate_top_n_host_share_over_time,
         calculate_unavailability_rate,
-        label_distribution,
+        label_distribution_area,
         aspect_sentiment_correlation,
     )
     from qa import (
@@ -131,9 +131,11 @@ def exec_kpi():
     )
 
     #8. KPI tỉ lệ các nhãn llm 
-    label_distribution_df = label_distribution(
+    label_distribution_df = label_distribution_area(
+        review_df= reviews,
+        listings_df=listings,
         llm_output=llm_df,
-        output_path= OUTPUT_DIR / "kpi_label_distribution.csv"
+        output_path= OUTPUT_DIR / "kpi_label_distribution_area.csv"
     )
 
     #9 KPI tỉ lệ các nhãn trong aspects là review non-positive

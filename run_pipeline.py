@@ -8,6 +8,7 @@ from src.exec_baseline import exec_baseline
 from src.exec_llm import exec_llm
 from src.exec_evaluate import exec_eval
 from src.exec_kpi import exec_kpi
+from src.exec_viz import exec_viz
 
 
 # PROJECT_ROOT = Path(__file__).resolve().parent
@@ -54,7 +55,8 @@ def run_pipeline():
     print("Bước: Tính toán KPI")
     exec_kpi()
     print("Hoàn thành việc tính KPI")
-    
+    exec_viz()
+    print("Hoàn thành sinh figures")
     print("\nHoàn tất pipeline.")
 
 

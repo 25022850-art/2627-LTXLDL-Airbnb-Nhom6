@@ -65,9 +65,9 @@ def exec_viz():
     dormant_output_path = output_folder / "dormant_listing_rate.png"
     plot_dormant_listing_rate(dormant_df, dormant_output_path)
 
-    label_csv = csv_folder / "kpi_label_distribution.csv"
+    label_csv = csv_folder / "kpi_label_distribution_area.csv"
     label_df = csv_to_df(label_csv)
-    label_output_path = output_folder / "label_distribution.png"
+    label_output_path = output_folder / "label_distribution_area.png"
     plot_label_distribution(label_df, label_output_path)
 
     prof_host_csv = csv_folder / "kpi_professional_host_share.csv"

@@ -1,0 +1,69 @@
+analysis_area_processed,aspect,label,count,percentage
+A01,general_sentiment,Positive,486,96.43
+A01,general_sentiment,Mixed,14,2.78
+A01,general_sentiment,Negative,4,0.79
+A01,accessibility,Highly accessible,244,48.41
+A01,accessibility,Poor access,8,1.59
+A01,accessibility,Neutral,3,0.6
+A01,noise,Quiet,43,8.53
+A01,noise,Noisy,14,2.78
+A01,noise,Acceptable,12,2.38
+A02,general_sentiment,Positive,596,93.86
+A02,general_sentiment,Mixed,33,5.2
+A02,general_sentiment,Negative,6,0.94
+A02,accessibility,Highly accessible,316,49.76
+A02,accessibility,Poor access,17,2.68
+A02,noise,Quiet,69,10.87
+A02,noise,Noisy,38,5.98
+A02,noise,Acceptable,31,4.88
+A03,general_sentiment,Positive,438,93.79
+A03,general_sentiment,Mixed,24,5.14
+A03,general_sentiment,Negative,5,1.07
+A03,accessibility,Highly accessible,232,49.68
+A03,accessibility,Poor access,6,1.28
+A03,accessibility,Neutral,1,0.21
+A03,noise,Quiet,46,9.85
+A03,noise,Noisy,20,4.28
+A03,noise,Acceptable,8,1.71
+A04,general_sentiment,Positive,266,95.68
+A04,general_sentiment,Mixed,11,3.96
+A04,general_sentiment,Negative,1,0.36
+A04,accessibility,Highly accessible,123,44.24
+A04,accessibility,Poor access,8,2.88
+A04,accessibility,Neutral,4,1.44
+A04,noise,Quiet,31,11.15
+A04,noise,Noisy,8,2.88
+A04,noise,Acceptable,3,1.08
+A05,general_sentiment,Positive,374,95.17
+A05,general_sentiment,Mixed,19,4.83
+A05,accessibility,Highly accessible,193,49.11
+A05,accessibility,Poor access,5,1.27
+A05,noise,Quiet,68,17.3
+A05,noise,Noisy,13,3.31
+A05,noise,Acceptable,5,1.27
+A06,general_sentiment,Positive,146,96.05
+A06,general_sentiment,Mixed,4,2.63
+A06,general_sentiment,Negative,2,1.32
+A06,accessibility,Highly accessible,63,41.45
+A06,accessibility,Poor access,1,0.66
+A06,noise,Quiet,12,7.89
+A06,noise,Noisy,2,1.32
+A06,noise,Acceptable,1,0.66
+A07,general_sentiment,Positive,352,94.88
+A07,general_sentiment,Mixed,16,4.31
+A07,general_sentiment,Negative,3,0.81
+A07,accessibility,Highly accessible,175,47.17
+A07,accessibility,Neutral,3,0.81
+A07,accessibility,Poor access,3,0.81
+A07,noise,Quiet,44,11.86
+A07,noise,Noisy,13,3.5
+A07,noise,Acceptable,4,1.08
+A08,general_sentiment,Positive,183,91.96
+A08,general_sentiment,Mixed,12,6.03
+A08,general_sentiment,Negative,4,2.01
+A08,accessibility,Highly accessible,102,51.26
+A08,accessibility,Poor access,8,4.02
+A08,accessibility,Neutral,2,1.01
+A08,noise,Quiet,25,12.56
+A08,noise,Noisy,7,3.52
+A08,noise,Acceptable,4,2.01

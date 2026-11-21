@@ -352,8 +352,39 @@ def calculate_unavailability_rate(
     return kpi_df
 
 
-def label_distribution_area(llm_output, output_path="data/processed/kpi_label_distribution_area.csv"):
-    df = llm_output.copy()
+def label_distribution_area(review_df, listings_df, llm_output, output_path="data/processed/kpi_label_distribution_area.csv"):
+    review_df = review_df.copy()
+    listings_df = listings_df.copy()
+    llm_output = llm_output.copy()
+
+    review_df = review_df.rename(columns={"id": "review_id"})
+
+    review_df["review_id"] = review_df["review_id"].astype(str)
+    review_df["listing_id"] = review_df["listing_id"].astype(str)
+    listings_df["id"] = listings_df["id"].astype(str)
+    llm_output["id"] = llm_output["id"].astype(str)
+
+    # Merge 1: Reviews + Listings
+    review_area_df = review_df[
+        ["review_id", "listing_id"]
+    ].merge(
+        listings_df[["id", "analysis_area_processed"]],
+        left_on="listing_id",
+        right_on="id",
+        how="inner",
+        validate="many_to_one"
+    )
+
+    # Merge 2: LLM Output + Review Areas
+    df = llm_output.merge(
+        review_area_df[
+            ["review_id", "analysis_area_processed"]
+        ],
+        left_on="id",
+        right_on="review_id",
+        how="inner",
+        validate="one_to_one"
+    )
     aspects = ['general_sentiment', 'accessibility', 'noise']
 
     results = []

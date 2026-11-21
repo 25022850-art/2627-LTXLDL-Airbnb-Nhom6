@@ -61,11 +61,11 @@ def plot_overpriced_analysis(df: pd.DataFrame, output_path: Path):
     # Trục Y thứ 2 vẽ đường Median Price
     ax1_twin = ax1.twinx()
     line = ax1_twin.plot(
-        x, df_area["area_median_price"],
+        x, df_area["group_median_price"],
         color="#3D405B", marker="o", linewidth=2.2, label="Median Price ($)"
     )
     ax1_twin.set_ylabel("Area Median Price ($)", color="#3D405B", fontweight="bold")
-    ax1_twin.set_ylim(0, df_area["area_median_price"].max() * 1.2)
+    ax1_twin.set_ylim(0, df_area["group_median_price"].max() * 1.2)
     ax1_twin.spines["top"].set_visible(False)
 
     # Gộp legend của 2 trục
@@ -92,7 +92,7 @@ def plot_overpriced_analysis(df: pd.DataFrame, output_path: Path):
         h = bar.get_height()
         ax2.text(
             bar.get_x() + bar.get_width() / 2, h + 0.6,
-            f"{h:.1f}%\n(Med: ${row['area_median_price']:.0f})\n(Listing Count: {int(row['overpriced_listings'])})",
+            f"{h:.1f}%\n(Med: ${row['group_median_price']:.0f})\n(Listing Count: {int(row['overpriced_listings'])})",
             ha="center", va="bottom", fontsize=8.5
         )
 
@@ -329,8 +329,8 @@ def plot_dormant_listing_rate(df: pd.DataFrame, output_path: str | Path):
                 for bar, val in zip(bars, vals):
                     if val > 0:
                         ax.text(
-                            bar.get_x() + bar.get_width() / 2, val + 0.3, f"{val:.1f}%",
-                            ha="center", va="bottom", fontsize=8, rotation=90
+                            bar.get_x() + bar.get_width() / 2, val + 0.3, f"{val:.1f}",
+                            ha="center", va="bottom", fontsize=8, fontweight="bold"
                         )
 
         ax.set_xticks(x)
@@ -351,7 +351,7 @@ def plot_dormant_listing_rate(df: pd.DataFrame, output_path: str | Path):
         handles, labels, title="Snapshot", loc="lower center",
         bbox_to_anchor=(0.5, 0.0), ncol=len(snapshots), frameon=True
     )
-    plt.tight_layout(rect=[0, 0, 0.91, 1])
+    plt.tight_layout(rect=[0, 0.16, 1, 0.95])
 
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -362,58 +362,78 @@ def plot_dormant_listing_rate(df: pd.DataFrame, output_path: str | Path):
 def plot_label_distribution(df: pd.DataFrame, output_path: str | Path):
     df = df.copy()
     df.columns = df.columns.str.strip()
+    required = {"analysis_area_processed", "aspect", "label", "count"}
+
     df = df[df["label"].astype(str).str.strip().str.lower() != "not mentioned"]
-    aspects = df["aspect"].unique()
+    df = df[df["analysis_area_processed"].astype(str) != "All"]
+
+    aspects = list(df["aspect"].unique())
+    areas = sorted(df["analysis_area_processed"].unique())
 
     TEAL, YELLOW, RED_ORANGE = "#2A9D8F", "#E9C46A", "#E76F51"
-    label_color = {
-        "positive": TEAL, "highly accessible": TEAL, "quiet": TEAL,
-        "mixed": YELLOW, "neutral": YELLOW, "acceptable": YELLOW,
-        "negative": RED_ORANGE, "poor access": RED_ORANGE, "noisy": RED_ORANGE,
+    # (màu, thứ tự đoạn): tích cực → trung tính/hỗn hợp → tiêu cực
+    label_style = {
+        "positive": (TEAL, 0), "highly accessible": (TEAL, 0), "quiet": (TEAL, 0),
+        "mixed": (YELLOW, 1), "neutral": (YELLOW, 1), "acceptable": (YELLOW, 1),
+        "negative": (RED_ORANGE, 2), "poor access": (RED_ORANGE, 2), "noisy": (RED_ORANGE, 2),
     }
+    SMALL_N = 70  # cảnh báo cỡ mẫu nhỏ, đồng bộ với biểu đồ sentiment
 
-    fig, axes = plt.subplots(1, len(aspects), figsize=(5 * len(aspects), 5.2), sharex=True)
+    fig, axes = plt.subplots(
+        1, len(aspects), figsize=(6 * len(aspects), 0.6 * len(areas) + 3.6), sharex=True
+    )
     if len(aspects) == 1:
         axes = [axes]
 
     fig.suptitle(
-        "Distribution of Sentiment and Experience Aspect Labels",
+        "Distribution of Sentiment and Experience Aspect Labels by Area",
         fontsize=13, fontweight="bold", y=0.99
     )
 
+    y = np.arange(len(areas))
     for ax, aspect in zip(axes, aspects):
-        sub = df[df["aspect"] == aspect].sort_values("percentage", ascending=True)
-        y = np.arange(len(sub))
-        colors = [label_color.get(str(l).strip().lower(), "#999999") for l in sub["label"]]  # [SỬA]
-        bars = ax.barh(y, sub["percentage"], color=colors, height=0.55)
+        sub = df[df["aspect"] == aspect]
+        pivot = sub.pivot_table(index="analysis_area_processed", columns="label", values="count", aggfunc="sum").reindex(areas).fillna(0)
+        # sắp thứ tự cột theo ngữ nghĩa
+        cols = sorted(pivot.columns, key=lambda l: label_style.get(str(l).strip().lower(), ("#999999", 3))[1])
+        pivot = pivot[cols]
+        totals = pivot.sum(axis=1)
+        share = pivot.div(totals.replace(0, np.nan), axis=0).fillna(0) * 100
 
+        left = np.zeros(len(areas))
+        for lab in cols:
+            color = label_style.get(str(lab).strip().lower(), ("#999999", 3))[0]
+            vals = share[lab].to_numpy()
+            ax.barh(y, vals, left=left, color=color, height=0.62, label=lab)
+            for i, v in enumerate(vals):
+                if v >= 8:
+                    ax.text(left[i] + v / 2, y[i], f"{v:.0f}%", ha="center", va="center", fontsize=8.5,
+                            fontweight="bold", color="#222222" if color == YELLOW else "white")
+            left += vals
+
+        # Nhãn trục y kèm n; ⚠ + tô đỏ khi n < 70
+        ylabels = [f"{'⚠ ' if totals[a] < SMALL_N else ''}{a} (n={int(totals[a])})" for a in areas]
         ax.set_yticks(y)
-        ax.set_yticklabels(sub["label"], fontsize=9.5)
+        ax.set_yticklabels(ylabels, fontsize=9.5)
+        for tick, a in zip(ax.get_yticklabels(), areas):
+            if totals[a] < SMALL_N:
+                tick.set_color("#C1121F")
+        ax.invert_yaxis()  # A01 ở trên cùng
         ax.set_xlim(0, 100)
         ax.set_xticks(np.arange(0, 101, 20))
-        ax.set_xlabel("Percentage (%)")
+        ax.set_xlabel("Share (%)")
         ax.set_title(aspect.replace("_", " ").title(), fontweight="bold", pad=10)
-        ax.grid(axis="x", linestyle="--", alpha=0.4)
+        ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.14), ncol=len(cols), frameon=False, fontsize=9)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
 
-        for bar, (_, row) in zip(bars, sub.iterrows()):
-            w = bar.get_width()
-            txt = f"{w:.1f}% ({int(row['count'])})"
-            if w > 70:
-                ax.text(w - 1.2, bar.get_y() + bar.get_height() / 2, txt, va="center", ha="right",
-                        fontsize=8.5, color="white", fontweight="bold")
-            else:
-                ax.text(w + 1.2, bar.get_y() + bar.get_height() / 2, txt, va="center", ha="left", fontsize=8.5)
-
-    plt.tight_layout(rect=[0, 0.05, 1, 0.95])
+    plt.tight_layout(rect=[0, 0.06, 1, 0.95])
     fig.text(
-    0.5, 0.012,
-    "Percentages are calculated based on a total of 3,000 reviews (the \"Not Mentioned\" category is excluded from the visualization)",
-    ha="center", va="bottom", fontsize=9,
-    style="italic", color="#555555"
+        0.5, 0.012,
+        "Shares are computed within each area over reviews that mention the aspect ('Not mentioned' excluded). "
+        f"⚠ Small sample (n < {SMALL_N}).",
+        ha="center", va="bottom", fontsize=9, style="italic", color="#555555"
     )
-
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(out, dpi=300, bbox_inches="tight")
@@ -472,8 +492,8 @@ def plot_professional_host_share(df: pd.DataFrame, output_path: str | Path):
     )
 
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, title="Host Tier", loc="upper center", bbox_to_anchor=(0.5, 1.02), ncol=3, frameon=True)
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    fig.legend(handles, labels, title="Host Tier", loc="upper center", bbox_to_anchor=(0.5, 0.965), ncol=3, frameon=True)
+    plt.tight_layout(rect=[0, 0, 1, 0.9])
 
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -546,11 +566,11 @@ def plot_revpar(df: pd.DataFrame, output_path: str | Path):
 
     # Biểu đồ trái: RevPAR (Bar) + ADR & Occupancy (Annotations/Line)
     x = np.arange(len(df_area))
-    bars = ax1.bar(x, df_area["revpar"], width=0.55, color="#2A9D8F", label="RevPAR ($)")
+    bars = ax1.bar(x, df_area["revpar"], width=0.65, color="#2A9D8F", label="RevPAR ($)")
     ax1.set_xticks(x)
     ax1.set_xticklabels(df_area["analysis_area"])
     ax1.set_ylabel("RevPAR ($)", color="#2A9D8F", fontweight="bold")
-    ax1.set_ylim(0, df_area["revpar"].max() * 1.22)
+    ax1.set_ylim(0, y_top)
     ax1.set_title("RevPAR ($) & Occupancy Rate (%) by Area", fontweight="bold", pad=12)
     ax1.grid(axis="y", linestyle="--", alpha=0.4)
     ax1.spines["top"].set_visible(False)
