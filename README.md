@@ -9,7 +9,7 @@ Dự án phân tích thị trường Airbnb tại Porto qua bốn mốc dữ li�
 - **Mã lớp:** UET.DSE2049 3
 - **Tên/mã nhóm:** Nhóm 6
 - **Thành phố được phân công:** Porto, Bồ Đào Nha
-- **Bên đặt hàng phân tích:**
+- **Bên đặt hàng phân tích:**  Quỹ đầu tư BĐS & Vận hành STR
 - **Bốn mốc dữ liệu:** `2025-09-21`, `2025-12-25`, `2026-03-26`, `2026-06-23`
 
 | Họ tên | MSSV | GitHub username | Công việc phụ trách |
