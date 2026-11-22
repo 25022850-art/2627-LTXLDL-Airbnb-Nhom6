@@ -45,3 +45,9 @@
     - Dùng vào việc: Sử dụng các hàm trong QA, KPI (không sửa logic, chỉ gọi hàm) để code ra đoạn xử lý và tính toán trên mẫu nhỏ kiểm thử.
     - AI sai ở đâu: Truyền sai tham số so với dự định, đường dẫn import sai do không biết về thứ bậc folder.
     - Kiểm chứng: Kiểm tra lại tham số truyền vào, đường dẫn import theo cấu trúc thư mục và luồng gọi các hàm. Chạy trực tiếp đoạn code trên mẫu nhỏ để đảm bảo không báo lỗi và ra kết quả cần kiểm tra.
+
+9. Lần 9:
+    - Công cụ: Gemini + Claude
+    - Dùng vào việc: Hỗ trợ viết file vẽ biểu đồ (viz.py, viz_geojson.py)
+    - AI sai ở đâu: Tiêu đề biểu đồ, dùng sai loại biểu đồ, dùng màu lẫn lộn, không hợp lý.
+    - Kiểm chứng: Kiểm tra figures đầu ra và tinh chỉnh lại nếu cần.
