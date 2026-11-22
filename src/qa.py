@@ -145,7 +145,7 @@ def id_flags(data, prefix):
     """Tạo một cột True/False cho mỗi quy tắc kiểm tra ID."""
     ids = data['id']
     valid_id = ids.notna()
-    repeated_id = valid_id & ids.duplicated()
+    repeated_id = valid_id & ids.duplicated(keep=False)
     distinct_rows = data.loc[valid_id].drop_duplicates()
     conflicts = distinct_rows['id'].duplicated(keep=False)
     conflict_ids = distinct_rows.loc[conflicts, 'id']
