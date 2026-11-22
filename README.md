@@ -14,8 +14,8 @@ Dự án phân tích thị trường Airbnb tại Porto qua bốn mốc dữ li�
 
 | Họ tên | MSSV | GitHub username | Công việc phụ trách |
 |---|---|---|---|
-| Lê Chí Hiếu | 25022850 | 25022850-art | Kpi, llm, viz, download |
-| Nguyễn Thanh Hải | 25022804 | HAITO192 | |
+| Lê Chí Hiếu | 25022850 | 25022850-art | Kpi, llm, viz, download, baseline |
+| Nguyễn Thanh Hải | 25022804 | HAITO192 | Qa, download, llm, geojson, baseline, evaluate  |
 | Lê Hồng Đăng | 25022823 | HNDCMMRCT | |
 | Hồ Thành Đạt | 25022818 | 25022818-HoThanhDat	| Tạo biểu đồ Viz |
 | Đinh Văn Lượng | 25022928 | 25022928-lab | |
