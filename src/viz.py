@@ -159,74 +159,121 @@ def plot_overpriced_analysis(df: pd.DataFrame, output_path: Path):
     save_figure(fig, output_path)
 
 
-def plot_unavailability_rate(df: pd.DataFrame, output_path: str | Path):
+
+def plot_booking_curve(df: pd.DataFrame, output_path: str | Path):
     df = df.copy()
     df.columns = df.columns.str.strip()
-    df["year_month"] = df["year_month"].astype(str)
+    months = sorted(df["target_month"].astype(str).unique())
+    areas = sorted(a for a in df["analysis_area"].unique() if a != "All")
+    ncols = len(months)
+    month_label = {m: pd.Period(m, freq="M").strftime("%b %Y") for m in months}
 
-    pivot_df = df.pivot(
-        index="analysis_area",
-        columns="year_month",
-        values="unavailability_rate_%"
-    ).sort_index()
-
-    areas = pivot_df.index.tolist()
-    months = pivot_df.columns.tolist()
-    matrix = pivot_df.to_numpy(dtype=float)
-
-    fig, (ax1, ax2) = plt.subplots(
-        1, 2, figsize=(15, 5.5), gridspec_kw={"width_ratios": [1.3, 1]}
+    fig, axes = plt.subplots(
+        2, ncols, figsize=(7.4 * ncols, 9.6), squeeze=False,
+        gridspec_kw={"height_ratios": [1.25, 1]},
+    )
+    fig.suptitle(
+        "Booking Curve: Unavailability Rate by Lead Time (" + " and ".join(month_label[m] for m in months) + " Stays)",
+        y=0.995,
     )
 
-    # --- BIỂU ĐỒ 1 (TRÁI): Line Chart xu hướng theo thời gian ---
-    x = np.arange(len(months))
+    # Trục y dùng chung cho hàng trên
+    y_top = float(np.ceil(df["unavailability_rate_%"].max() * 1.1 / 10) * 10)
     cmap_lines = plt.get_cmap("tab10")
 
-    for i, area in enumerate(areas):
-        ax1.plot(
-            x,
-            pivot_df.loc[area].to_numpy(),
-            marker="o",
-            label=area,
-            color=cmap_lines(i % 10)
-        )
+    # ---------- Hàng trên: đường cong theo lead time ----------
+    for c, m in enumerate(months):
+        ax = axes[0, c]
+        sub = df[df["target_month"].astype(str) == m]
+        leads = sorted(sub["lead_days"].unique(), reverse=True)
+        snap_of_lead = sub.drop_duplicates("lead_days").set_index("lead_days")["snapshot"].astype(str)
 
-    ax1.set_xticks(x)
-    ax1.set_xticklabels(months, rotation=30, ha="right")
-    ax1.set_ylabel("Unavailability Rate (%)")
-    ax1.set_title("Xu hướng Unavailability Rate (%) theo Tháng")
-    ax1.grid(True, axis="y")
-    ax1.legend(title="Area", bbox_to_anchor=(1.02, 1), loc="upper left", frameon=True)
+        for i, a in enumerate(areas):
+            s = sub[sub["analysis_area"] == a].sort_values("lead_days", ascending=False)
+            ax.plot(s["lead_days"], s["unavailability_rate_%"], marker="o", markersize=4.5,
+                    linewidth=1.6, color=cmap_lines(i % 10), label=a, alpha=0.9)
 
-    # --- BIỂU ĐỒ 2 (PHẢI): Heatmap ma trận Khu vực x Tháng ---
-    im = ax2.imshow(matrix, cmap="YlOrRd", aspect="auto")
+        # Toàn thành phố của CHÍNH tháng này 
+        s_all = sub[sub["analysis_area"] == "All"].sort_values("lead_days", ascending=False)
+        ax.plot(s_all["lead_days"], s_all["unavailability_rate_%"], color="#222222", linestyle="--",
+                linewidth=2.2, marker="s", markersize=5.5, label="Citywide", zorder=5)
+        for _, r in s_all.iterrows():
+            ax.annotate(f"{r['unavailability_rate_%']:.1f}%", (r["lead_days"], r["unavailability_rate_%"]),
+                        textcoords="offset points", xytext=(0, 8), ha="center", fontsize=8.5,
+                        fontweight="bold", color="#222222",
+                        bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85), zorder=6)
 
-    ax2.set_xticks(np.arange(len(months)))
-    ax2.set_xticklabels(months, rotation=30, ha="right")
-    ax2.set_yticks(np.arange(len(areas)))
-    ax2.set_yticklabels(areas)
-    ax2.set_title("Heatmap Unavailability Rate (%)")
-    for spine in ax2.spines.values():
-        spine.set_visible(False)
-    ax2.tick_params(length=0)
+        ax.set_xticks(leads)
+        ax.set_xticklabels([f"{int(l)}d\n{snap_of_lead[l]}" for l in leads])
+        ax.set_xlim(max(leads) + 12, min(leads) - 12)  # đảo trục: thời gian chạy về phía ngày ở
+        ax.set_ylim(0, y_top)
+        ax.set_yticks(np.arange(0, y_top + 1, 10))
+        ax.set_xlabel("Days before the 1st of the month (snapshot date)")
+        if c == 0:
+            ax.set_ylabel("Unavailability Rate (%)")
+        ax.set_title(f"{month_label[m]} stays")
+        ax.grid(True, axis="y")
 
-    threshold = np.nanmean(matrix)
-    for r in range(len(areas)):
-        for c in range(len(months)):
-            val = matrix[r, c]
-            if not np.isnan(val):
-                text_color = "white" if val > threshold * 1.15 else "#222222"
-                ax2.text(
-                    c, r, f"{val:.1f}%",
-                    ha="center", va="center", color=text_color, fontsize=8.5
-                )
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", ncol=len(labels), bbox_to_anchor=(0.5, 0.965), frameon=False)
 
-    cbar = fig.colorbar(im, ax=ax2, fraction=0.046, pad=0.04)
-    cbar.set_label("Rate (%)", fontsize=9)
-    cbar.outline.set_visible(False)
-    cbar.ax.tick_params(length=0)
+    # ---------- Hàng dưới: pickup giữa các snapshot (khu vực x khoảng thời gian) ----------
+    pk = df.dropna(subset=["pickup_pp"])
+    vmax = float(np.nanmax(np.abs(pk["pickup_pp"]))) if len(pk) else 1.0
+    has_neg = bool((pk["pickup_pp"] < 0).any())
+    if has_neg:
+        from matplotlib.colors import TwoSlopeNorm
+        cmap_h, norm = plt.get_cmap("RdBu_r"), TwoSlopeNorm(vmin=-vmax, vcenter=0, vmax=vmax)
+    else:
+        from matplotlib.colors import Normalize
+        cmap_h, norm = plt.get_cmap("YlOrRd"), Normalize(vmin=0, vmax=vmax)
 
-    plt.tight_layout()
+    im = None
+    row_order = areas + ["All"]
+    for c, m in enumerate(months):
+        ax = axes[1, c]
+        sub = df[df["target_month"].astype(str) == m].sort_values(["analysis_area", "lead_days"], ascending=[True, False])
+        pv = sub.pivot(index="analysis_area", columns="lead_days", values="pickup_pp").reindex(row_order)
+        cols = sorted(pv.columns, reverse=True)[1:]  # bỏ snapshot đầu (không có pickup)
+        pv = pv[cols]
+        all_leads = sorted(sub["lead_days"].unique(), reverse=True)
+        col_labels = [f"{int(all_leads[i])}d → {int(all_leads[i + 1])}d" for i in range(len(all_leads) - 1)]
+
+        mat = pv.to_numpy(dtype=float)
+        im = ax.imshow(mat, cmap=cmap_h, norm=norm, aspect="auto")
+        ax.set_xticks(np.arange(len(cols)))
+        ax.set_xticklabels(col_labels)
+        ax.set_yticks(np.arange(len(row_order)))
+        ax.set_yticklabels([("Citywide" if r == "All" else r) for r in row_order])
+        ax.axhline(len(areas) - 0.5, color="white", linewidth=3)
+        ax.tick_params(length=0)
+        for sp in ax.spines.values():
+            sp.set_visible(False)
+        for i in range(mat.shape[0]):
+            for j in range(mat.shape[1]):
+                val = mat[i, j]
+                if not np.isnan(val):
+                    dark = norm(val) > 0.7 or (has_neg and norm(val) < 0.25)
+                    ax.text(j, i, f"{val:+.1f}", ha="center", va="center", fontsize=8.5,
+                            color="white" if dark else "#222222", fontweight="bold" if row_order[i] == "All" else "normal")
+        ax.set_xlabel("Lead-time interval (days before the 1st of the month)")
+        ax.set_title(f"{month_label[m]}: pickup between snapshots (pp)")
+
+    cax = fig.add_axes([0.925, 0.12, 0.012, 0.3])  # thanh màu đặt cố định bên phải hàng dưới
+    cbar = fig.colorbar(im, cax=cax)
+    cbar.set_label("Change in unavailability (pp)")
+
+    n_txt = ", ".join(
+        f"{month_label[m]}: n = {int(df[(df['target_month'].astype(str) == m) & (df['analysis_area'] == 'All')]['n_listings'].max()):,}"
+        for m in months
+    )
+    fig.text(
+        0.5, 0.0,
+        f"Same listings in every snapshot ({n_txt}). Unavailable = booked or blocked by host. "
+        "Lead time is measured to the 1st of the month.",
+        ha="center", va="top", fontsize=9, style="italic", color="#555555",
+    )
+    fig.subplots_adjust(top=0.87, bottom=0.08, left=0.07, right=0.9, hspace=0.6, wspace=0.18)  # tránh nhãn trục đè tiêu đề hàng dưới
     save_figure(fig, output_path)
 
 
@@ -695,9 +742,9 @@ def main():
         csv_to_df(csv_folder / "kpi_overpriced_rate.csv"),
         output_folder / "overpriced_analysis.png",
     )
-    plot_unavailability_rate(
-        csv_to_df(csv_folder / "kpi_unavailability_rate.csv"),
-        output_folder / "unavailability_rate.png",
+    plot_booking_curve(
+        csv_to_df(csv_folder / "kpi_booking_curve.csv"),
+        output_folder / "booking_curve.png",
     )
     plot_sentiment_correlation(
         csv_to_df(csv_folder / "kpi_aspect_sentiment_correlation.csv"),

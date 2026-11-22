@@ -317,37 +317,79 @@ def calculate_top_n_host_share_over_time(
     final_kpi.to_csv(output_path, index=False)
     return final_kpi
 
-def calculate_unavailability_rate(
+def calculate_booking_curve(
     calendar_df,
     listings_df,
-    output_path="data/processed/kpi_unavailability_rate.csv",
+    target_months=("2026-07", "2026-08"),
+    output_path="data/processed/kpi_booking_curve.csv",
 ):
-    df = calendar_df.merge(
-        listings_df[["id", "analysis_area_processed"]],
-        left_on="listing_id", right_on="id", how="inner",
+    periods = [pd.Period(m, freq="M") for m in target_months]
+
+    # Khu vực của listing (listings_df là snapshot mới nhất; mỗi listing một khu vực cố định)
+    area_map = listings_df.drop_duplicates("id").set_index("id")["analysis_area_processed"]
+
+    cal = calendar_df[["listing_id", "snapshot", "clean_date", "clean_available"]].copy()
+    cal["clean_date"] = pd.to_datetime(cal["clean_date"])
+    cal["year_month"] = cal["clean_date"].dt.to_period("M")
+    cal = cal[cal["year_month"].isin(periods)]
+    cal["is_unavailable"] = ~cal["clean_available"]
+    cal["snapshot"] = cal["snapshot"].astype(str)
+
+    # Một dòng cho mỗi (snapshot, listing, tháng)
+    lm = (
+        cal.groupby(["snapshot", "listing_id", "year_month"])
+        .agg(total_days=("clean_date", "size"), unavailable_days=("is_unavailable", "sum"))
+        .reset_index()
     )
-    
-    df["clean_date"] = pd.to_datetime(df["clean_date"], errors="coerce")
 
-    df["year_month"] = df["clean_date"].dt.to_period("M")
-    df["is_unavailable"] = ~df["clean_available"]
+    rows = []
+    for p in periods:
+        lp = lm[lm["year_month"] == p]
+        snaps_p = sorted(lp["snapshot"].unique())
+        if len(snaps_p) < 2:
+            print(f"[booking_curve] Bỏ qua {p}: chỉ có {len(snaps_p)} snapshot phủ tháng này")
+            continue
 
-    # giữ các tháng đủ ngày
-    df = exclude_missing_days_in_month(df)
+        # Panel cân bằng: listing có mặt ở mọi snapshot phủ tháng p và có khu vực
+        panel = None
+        for s in snaps_p:
+            ids = set(lp.loc[lp["snapshot"] == s, "listing_id"])
+            panel = ids if panel is None else panel & ids
+        panel = panel & set(area_map.index)
 
-    kpi_df = df.groupby(["year_month", "analysis_area_processed"]).agg(
-        n_listings=("listing_id", "nunique"),
-        total_days=("listing_id", "count"),
-        unavailable_days=("is_unavailable", "sum"),
-    ).reset_index()
+        sub = lp[lp["listing_id"].isin(panel)].copy()
+        sub["analysis_area"] = sub["listing_id"].map(area_map)
 
-    kpi_df = kpi_df.rename(columns={"analysis_area_processed": "analysis_area"})
+        by_area = sub.groupby(["snapshot", "analysis_area"]).agg(
+            n_listings=("listing_id", "nunique"),
+            total_days=("total_days", "sum"),
+            unavailable_days=("unavailable_days", "sum"),
+        ).reset_index()
+        overall = sub.groupby("snapshot").agg(
+            n_listings=("listing_id", "nunique"),
+            total_days=("total_days", "sum"),
+            unavailable_days=("unavailable_days", "sum"),
+        ).reset_index()
+        overall["analysis_area"] = "All"
 
+        part = pd.concat([by_area, overall], ignore_index=True)
+        part["target_month"] = str(p)
+        part["lead_days"] = part["snapshot"].map(lambda s: (p.start_time - pd.Timestamp(s)).days)
+        rows.append(part)
+
+    kpi_df = pd.concat(rows, ignore_index=True)[[
+        "snapshot", "target_month", "lead_days", "analysis_area",
+        "n_listings", "total_days", "unavailable_days",
+    ]]
     kpi_df["unavailability_rate_%"] = (
         kpi_df["unavailable_days"] / kpi_df["total_days"] * 100
     ).round(2)
+    kpi_df = kpi_df.sort_values(["target_month", "analysis_area", "snapshot"]).reset_index(drop=True)
+    kpi_df["pickup_pp"] = (
+        kpi_df.groupby(["target_month", "analysis_area"])["unavailability_rate_%"].diff().round(2)
+    )
 
-    kpi_df = kpi_df.sort_values(["year_month", "analysis_area"]).reset_index(drop=True)
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     kpi_df.to_csv(output_path, index=False)
     return kpi_df
 

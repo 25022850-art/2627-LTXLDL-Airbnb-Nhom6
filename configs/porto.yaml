@@ -20,6 +20,10 @@ kpi:
     pro_threshold: 10
   top_n_host:
     top_n: 10
+  booking_curve:
+    target_months:
+      - "2026-07"
+      - "2026-08"
 
 qa:
   # ID của những chỗ ở có giá bất thường so với những gì chỗ đó có

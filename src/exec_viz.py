@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 from src.viz import (
     plot_overpriced_analysis,
-    plot_unavailability_rate,
+    plot_booking_curve,
     plot_sentiment_correlation,
     plot_dormant_listing_rate,
     plot_label_distribution,
@@ -47,11 +47,11 @@ def exec_viz():
     # Generate visualizations
     plot_overpriced_analysis(overpriced_df, overpriced_output_path)
 
-    unavailable_csv = csv_folder / "kpi_unavailability_rate.csv"
-    unavailable_df = csv_to_df(unavailable_csv)
-    unavailable_output_path = output_folder / "unavailability_rate.png"
+    booking_csv = csv_folder / "kpi_booking_curve.csv"
+    booking_df = csv_to_df(booking_csv)
+    booking_output_path = output_folder / "booking_curve.png"
 
-    plot_unavailability_rate(unavailable_df,unavailable_output_path)
+    plot_booking_curve(booking_df, booking_output_path)
 
     # data/processed/kpi_aspect_sentiment_correlation.csv
     sentiment_csv = csv_folder / "kpi_aspect_sentiment_correlation.csv"

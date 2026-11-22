@@ -444,4 +444,4 @@ def concat_calendar():
         part = pd.read_csv(PROCESSED_DIR / str(snapshot) / "processed_calendar.csv", encoding="utf-8", dtype={"listing_id": str})
         part.insert(0, "snapshot", pd.to_datetime(snapshot))
         parts.append(part)
-    return exclude_duplicated_for_calendar(pd.concat(parts, ignore_index=True))
+    return pd.concat(parts, ignore_index=True)

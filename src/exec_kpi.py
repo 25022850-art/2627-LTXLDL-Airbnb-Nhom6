@@ -11,7 +11,7 @@ try:
         calculate_revpar_single_snapshot,
         calculate_host_share_over_time,
         calculate_top_n_host_share_over_time,
-        calculate_unavailability_rate,
+        calculate_booking_curve,
         label_distribution_area,
         aspect_sentiment_correlation,
     )
@@ -26,7 +26,7 @@ except ImportError:
         calculate_revpar_single_snapshot,
         calculate_host_share_over_time,
         calculate_top_n_host_share_over_time,
-        calculate_unavailability_rate,
+        calculate_booking_curve,
         label_distribution_area,
         aspect_sentiment_correlation,
     )
@@ -124,10 +124,11 @@ def exec_kpi():
 
     full_calendar = concat_calendar()
     #7. KPI tỉ lệ phòng không khả dụng 
-    unavailability_rate_df = calculate_unavailability_rate(
-    full_calendar,
-    listings,
-    output_path=OUTPUT_DIR / "kpi_unavailability_rate.csv",
+    booking_curve_df = calculate_booking_curve(
+        calendar_df=full_calendar,
+        listings_df=listings,
+        **kpi_cfg.get("booking_curve", {}),
+        output_path=OUTPUT_DIR / "kpi_booking_curve.csv",
     )
 
     #8. KPI tỉ lệ các nhãn llm 
@@ -152,7 +153,7 @@ def exec_kpi():
         "revpar": revpar_df,
         "professional_host_share": pro_host_share_df,
         "top_n_host_share": top_n_host_share_df,
-        "unavailability_rate" : unavailability_rate_df,
+        "booking_curve" : booking_curve_df,
         "label_distribution" : label_distribution_df,
         "aspect_sentiment_correlation" : aspect_sentiment_correlation_df,
     }
