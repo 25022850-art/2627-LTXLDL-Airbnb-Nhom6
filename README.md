@@ -16,9 +16,9 @@ Dự án phân tích thị trường Airbnb tại Porto qua bốn mốc dữ li�
 |---|---|---|---|
 | Lê Chí Hiếu | 25022850 | 25022850-art | Kpi, llm, viz, download, baseline |
 | Nguyễn Thanh Hải | 25022804 | HAITO192 | Qa, download, llm, geojson, baseline, evaluate  |
-| Lê Hồng Đăng | 25022823 | HNDCMMRCT | |
+| Lê Hồng Đăng | 25022823 | HNDCMMRCT | qa listing, review |
 | Hồ Thành Đạt | 25022818 | 25022818-HoThanhDat	| Tạo biểu đồ Viz |
-| Đinh Văn Lượng | 25022928 | 25022928-lab | |
+| Đinh Văn Lượng | 25022928 | 25022928-lab | qa listing, calendar |
 
 ## Cài đặt và chạy
 
