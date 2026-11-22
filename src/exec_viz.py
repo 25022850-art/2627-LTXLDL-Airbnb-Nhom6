@@ -16,8 +16,15 @@ from src.viz import (
     plot_revpar,
     plot_top_n_host_share
 )
+from src.viz_geojson import (
+    get_latest_geojson_path,
+    load_analysis_area_gdf,
+    plot_revpar_geojson,
+    plot_label_distribution_area_geojson,
+)
 
 config_path = Path(__file__).parent.parent / "configs" / "porto.yaml"
+raw_folder = Path(__file__).parent.parent / "data" / "raw"
 csv_folder = Path(__file__).parent.parent / "data" / "processed"
 output_folder = Path(__file__).parent.parent / "figures"
 
@@ -40,7 +47,7 @@ def exec_viz():
     #kpi_df = csv_to_df(kpi_csv_path)
 
     # Load Overpriced Analysis data
-    print("Tạo biểu đồ cột cho overprice")
+    # print("Tạo biểu đồ cột cho overprice")
     overpriced_csv_path = csv_folder / "kpi_overpriced_rate.csv"
     overpriced_df = csv_to_df(overpriced_csv_path)
     overpriced_output_path = output_folder / "overpriced_analysis.png"
@@ -89,4 +96,28 @@ def exec_viz():
     top_n_df = csv_to_df(top_n_csv)
     top_n_output_path = output_folder / "top_n_host_share.png"
     plot_top_n_host_share(top_n_df, top_n_output_path)
+
+    # --- Vẽ bản đồ GeoJSON (mốc mới nhất) cho RevPAR và Phân bố nhãn theo Area ---
+    latest_geojson_path = get_latest_geojson_path(raw_folder)
+    snapshot_label = latest_geojson_path.parent.name
+    print(f"Đọc GeoJSON mốc mới nhất: {latest_geojson_path}")
+    gdf_areas, gdf_raw = load_analysis_area_gdf(latest_geojson_path)
+
+    revpar_geojson_output_path = output_folder / "revpar_geojson.png"
+    plot_revpar_geojson(
+        revpar_df,
+        gdf_areas,
+        revpar_geojson_output_path,
+        gdf_raw=gdf_raw,
+        snapshot_label=snapshot_label,
+    )
+
+    label_geojson_output_path = output_folder / "label_distribution_area_geojson.png"
+    plot_label_distribution_area_geojson(
+        label_df,
+        gdf_areas,
+        label_geojson_output_path,
+        gdf_raw=gdf_raw,
+        snapshot_label=snapshot_label,
+    )
 
