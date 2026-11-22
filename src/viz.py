@@ -81,7 +81,16 @@ def csv_to_df(csv_path: str | Path) -> pd.DataFrame:
     df = pd.read_csv(path)
     df.columns = df.columns.str.strip()
     return df
-
+def add_main_title(fig, title, y=0.985):
+    fig.text(
+        0.5, y,
+        title,
+        ha="center",
+        va="top",
+        fontsize=13,
+        fontweight="bold",
+        color="#111111"
+    )
 
 def plot_overpriced_analysis(df: pd.DataFrame, output_path: Path):
     df_area = df[(df["room_type"] == "All") & (df["analysis_area"] != "All")].copy()
@@ -93,8 +102,11 @@ def plot_overpriced_analysis(df: pd.DataFrame, output_path: Path):
     fig, (ax1, ax2) = plt.subplots(
         1, 2, figsize=(14, 5.2), gridspec_kw={"width_ratios": [2.4, 1]}
     )
-    fig.suptitle("Overpriced Listings Rate, snapshot 23/06/2026", y=0.99)
 
+    add_main_title(
+        fig,
+        "A08 records the highest overpriced rate (37.1%), while private rooms are more frequently overpriced than entire homes."
+    )
     # --- BIỂU ĐỒ 1 (TRÁI): Combo Bar (Overpriced %) + Line (Median Price) theo Khu vực ---
     x = np.arange(len(df_area))
     bars = ax1.bar(
@@ -149,7 +161,7 @@ def plot_overpriced_analysis(df: pd.DataFrame, output_path: Path):
             ha="center", va="bottom", fontsize=8.5
         )
 
-    plt.tight_layout(rect=[0, 0.05, 1, 0.95])
+    plt.tight_layout(rect=[0, 0.05, 1, 0.87])
     fig.text(
         0.5, 0.012,
         "Overpriced: Price ≥ 1,25 × Median Price by area and review_scores_value < 4,6. ",
@@ -172,9 +184,10 @@ def plot_booking_curve(df: pd.DataFrame, output_path: str | Path):
         2, ncols, figsize=(7.4 * ncols, 9.6), squeeze=False,
         gridspec_kw={"height_ratios": [1.25, 1]},
     )
-    fig.suptitle(
-        "Booking Curve: Unavailability Rate by Lead Time (" + " and ".join(month_label[m] for m in months) + " Stays)",
-        y=0.995,
+    add_main_title(
+    fig,
+    "Unavailability rises sharply near stay dates, reaching 57.0% in July and 46.1% in August.",
+    y=0.985
     )
 
     # Trục y dùng chung cho hàng trên
@@ -215,7 +228,7 @@ def plot_booking_curve(df: pd.DataFrame, output_path: str | Path):
         ax.grid(True, axis="y")
 
     handles, labels = axes[0, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", ncol=len(labels), bbox_to_anchor=(0.5, 0.965), frameon=False)
+    fig.legend(handles, labels, loc="upper center", ncol=len(labels), bbox_to_anchor=(0.5, 0.925), frameon=False)
 
     # ---------- Hàng dưới: pickup giữa các snapshot (khu vực x khoảng thời gian) ----------
     pk = df.dropna(subset=["pickup_pp"])
@@ -273,7 +286,14 @@ def plot_booking_curve(df: pd.DataFrame, output_path: str | Path):
         "Lead time is measured to the 1st of the month.",
         ha="center", va="top", fontsize=9, style="italic", color="#555555",
     )
-    fig.subplots_adjust(top=0.87, bottom=0.08, left=0.07, right=0.9, hspace=0.6, wspace=0.18)  # tránh nhãn trục đè tiêu đề hàng dưới
+    fig.subplots_adjust(
+        top=0.83,
+        bottom=0.08,
+        left=0.07,
+        right=0.9,
+        hspace=0.6,
+        wspace=0.18
+    )  # tránh nhãn trục đè tiêu đề hàng dưới
     save_figure(fig, output_path)
 
 
@@ -296,8 +316,10 @@ def plot_sentiment_correlation(df: pd.DataFrame, output_path: str | Path):
         sharey=True,
         gridspec_kw={"width_ratios": [1.5, 1]}
     )
-    fig.suptitle("Correlation Between Experience Aspects and Review Sentiment", y=0.99)
-
+    add_main_title(
+    fig,
+    "Noise complaints show the strongest association with non-positive reviews (10.07x baseline risk)."
+    )
     # --- BIỂU ĐỒ 1 (TRÁI): Horizontal Stacked Bar phân bổ tỷ lệ Sentiment ---
     pos = df["positive_rate"].to_numpy()
     mix = df["mixed_rate"].to_numpy()
@@ -363,7 +385,7 @@ def plot_sentiment_correlation(df: pd.DataFrame, output_path: str | Path):
     ax2.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), frameon=False)
     ax2.grid(axis="x")
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 0.87])
     fig.text(
         0.01, 0.01, f"⚠ Small sample (n < {SMALL_N}): Result needs to be elaborated carefully",
         ha="left", va="bottom", fontsize=9, style="italic", color="#C1121F"
@@ -383,7 +405,10 @@ def plot_dormant_listing_rate(df: pd.DataFrame, output_path: str | Path):
     colors = plt.get_cmap("Blues")(np.linspace(0.35, 0.95, len(snapshots)))
     Y_MAX, Y_STEP = 24, 4
     fig, axes = plt.subplots(1, 2, figsize=(14, 5.8), gridspec_kw={"width_ratios": [2.4, 1]})
-    fig.suptitle("Dormant Listing Rate Across Four Snapshots", y=0.99)
+    add_main_title(
+    fig,
+    "Private rooms consistently show higher dormant rates than entire homes, reaching 20.8% in June 2026."
+)
 
     for ax, sub_df, group_col, title, xlabel, ylabel in [
         (axes[0], df_area, "analysis_area", "Dormant Rate (%) by Area", "Analysis Area", "Dormant Rate (%)"),
@@ -427,7 +452,7 @@ def plot_dormant_listing_rate(df: pd.DataFrame, output_path: str | Path):
         handles, labels, title="Snapshot", loc="lower center",
         bbox_to_anchor=(0.5, 0.0), ncol=len(snapshots), frameon=True
     )
-    plt.tight_layout(rect=[0, 0.16, 1, 0.95])
+    plt.tight_layout(rect=[0, 0.16, 1, 0.87])
     save_figure(fig, output_path)
 
 
@@ -455,8 +480,10 @@ def plot_label_distribution(df: pd.DataFrame, output_path: str | Path):
     if len(aspects) == 1:
         axes = [axes]
 
-    fig.suptitle("Distribution of Sentiment and Experience Aspect Labels by Area", y=0.99)
-
+    add_main_title(
+    fig,
+    "Positive sentiment dominates all areas, while noise-related experiences show the greatest variation."
+)
     y = np.arange(len(areas))
     for ax, aspect in zip(axes, aspects):
         sub = df[df["aspect"] == aspect]
@@ -496,7 +523,7 @@ def plot_label_distribution(df: pd.DataFrame, output_path: str | Path):
         ax.set_title(aspect.replace("_", " ").title())
         ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.14), ncol=len(cols), frameon=False)
 
-    plt.tight_layout(rect=[0, 0.06, 1, 0.95])
+    plt.tight_layout(rect=[0, 0.06, 1, 0.87])
     fig.text(
         0.5, 0.012,
         "Shares are computed within each area over reviews that mention the aspect ('Not mentioned' excluded). "
@@ -518,6 +545,11 @@ def plot_professional_host_share(df: pd.DataFrame, output_path: str | Path):
     ncols = 2
     nrows = int(np.ceil(len(snapshots) / ncols))
     fig, axes = plt.subplots(nrows, ncols, figsize=(14, 4.5 * nrows), sharey=True)
+    add_main_title(
+        fig,
+        "Host composition remains broadly stable, with small multi-listing hosts holding the largest share in most areas.",
+        y=0.985
+    )
     axes = np.atleast_1d(axes).flatten()
 
     x = np.arange(len(areas))
@@ -553,10 +585,9 @@ def plot_professional_host_share(df: pd.DataFrame, output_path: str | Path):
     for j in range(len(snapshots), len(axes)):
         axes[j].axis("off")
 
-    fig.suptitle("Host Tier Market Share Distribution by Area Across Four Snapshots", y=1.0)
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, title="Host Tier", loc="upper center", bbox_to_anchor=(0.5, 0.965), ncol=3, frameon=True)
-    plt.tight_layout(rect=[0, 0, 1, 0.9])
+    fig.legend(handles, labels, title="Host Tier", loc="upper center", bbox_to_anchor=(0.5, 0.925), ncol=3, frameon=True)
+    plt.tight_layout(rect=[0, 0, 1, 0.84])
     save_figure(fig, output_path)
 
 
@@ -570,7 +601,10 @@ def plot_review_concentration(df: pd.DataFrame, output_path: str | Path):
     areas = sorted(pivot_df.columns.tolist())
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5.2), gridspec_kw={"width_ratios": [1.4, 1]})
-    fig.suptitle("Review Volume and Distribution Trends by Area (2015–2025)", y=0.99)
+    add_main_title(
+    fig,
+    "Review volume peaked in 2024 (911 reviews) before declining in 2025, with A02 contributing a substantial share."
+    )
 
     # Biểu đồ trái: Heatmap
     mat = pivot_df[areas].T.to_numpy()
@@ -628,7 +662,7 @@ def plot_review_concentration(df: pd.DataFrame, output_path: str | Path):
     ax2.tick_params(axis="x", rotation=45)
     ax2.grid(axis="y")
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 0.87])
     save_figure(fig, output_path)
 
 
@@ -640,8 +674,10 @@ def plot_revpar(df: pd.DataFrame, output_path: str | Path):
     df_room = df[(df["analysis_area"] == "All") & (df["room_type"] != "All")]
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14.5, 5.2), gridspec_kw={"width_ratios": [2.4, 1]})
-    fig.suptitle("Revenue Performance (RevPAR) and Occupancy Rate, Snapshot 23/6/2026", y=0.99)
-
+    add_main_title(
+    fig,
+    "A03 leads in RevPAR ($55.0) and occupancy (35%), while entire homes generate higher revenue than private rooms."
+)
     Y_STEP = 10
     y_top = float(np.ceil(max(df_area["revpar"].max(), df_room["revpar"].max()) * 1.1 / Y_STEP) * Y_STEP)
 
@@ -689,7 +725,7 @@ def plot_revpar(df: pd.DataFrame, output_path: str | Path):
             ha="center", va="bottom", fontsize=8
         )
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 0.87])
     save_figure(fig, output_path)
 
 
@@ -704,12 +740,15 @@ def plot_top_n_host_share(df: pd.DataFrame, output_path: str | Path):
 
     fig, ax1 = plt.subplots(figsize=(9, 4.8))
     bars = ax1.bar(x, df["top_n_share_%"], width=0.48, color="#4C72B0", label=f"Top {top_n} Share (%)")
+    add_main_title(
+    fig,
+    "Market concentration remains stable, with the top 10 hosts consistently controlling around 10% of listings."
+)
 
     ax1.set_xticks(x)
     ax1.set_xticklabels(df["snapshot"])
     ax1.set_ylabel(f"Top {top_n} Host Market Share (%)", color="#4C72B0")
     ax1.set_ylim(0, max(df["top_n_share_%"].max() * 1.3, 15))
-    ax1.set_title(f"Top {top_n} Hosts Market Share Across Four Snapshots")
     ax1.grid(axis="y")
 
     for bar, (_, row) in zip(bars, df.iterrows()):
@@ -730,7 +769,7 @@ def plot_top_n_host_share(df: pd.DataFrame, output_path: str | Path):
     h2, l2 = ax2.get_legend_handles_labels()
     ax1.legend(h1 + h2, l1 + l2, loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=2, frameon=False)
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 0.87])
     save_figure(fig, output_path)
 
 
