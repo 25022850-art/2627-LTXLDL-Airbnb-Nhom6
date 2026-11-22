@@ -32,7 +32,7 @@ def run_pipeline():
     config = load_config(config_path)
 
     # print("Bước: Tải dữ liệu raw")
-    # download_raw(CONFIG_PATH)
+    # download_raw(config_path)
     # print("Tải dữ liệu raw hoàn tất")
 
     print("Bước: Làm sạch dữ liệu (QA)")
@@ -55,6 +55,8 @@ def run_pipeline():
     print("Bước: Tính toán KPI")
     exec_kpi()
     print("Hoàn thành việc tính KPI")
+
+    print("Bước: Vẽ biểu đồ")
     exec_viz()
     print("Hoàn thành sinh figures")
     print("\nHoàn tất pipeline.")
