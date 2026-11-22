@@ -99,11 +99,11 @@ def plot_overpriced_analysis(df: pd.DataFrame, output_path: Path):
     x = np.arange(len(df_area))
     bars = ax1.bar(
         x, df_area["overpriced_rate_%"],
-        width=0.55, color="#E07A5F", alpha=0.88, label="Overpriced Rate (%)"
+        width=0.55, color="#4C72B0", alpha=0.92, label="Overpriced Rate (%)"
     )
     ax1.set_xticks(x)
     ax1.set_xticklabels(df_area["analysis_area"])
-    ax1.set_ylabel("Overpriced Rate (%)", color="#E07A5F")
+    ax1.set_ylabel("Overpriced Rate (%)", color="#4C72B0")
     ax1.set_ylim(0, df_area["overpriced_rate_%"].max() * 1.2)
     ax1.set_title("Overpriced Rate and Median Price by Area")
     ax1.grid(axis="y")
@@ -119,9 +119,9 @@ def plot_overpriced_analysis(df: pd.DataFrame, output_path: Path):
     ax1_twin = ax1.twinx()
     ax1_twin.plot(
         x, df_area["group_median_price"],
-        color="#3D405B", marker="o", label="Median Price ($)"
+        color="#E76F51", marker="o", label="Median Price ($)"
     )
-    ax1_twin.set_ylabel("Area Median Price ($)", color="#3D405B")
+    ax1_twin.set_ylabel("Area Median Price ($)", color="#E76F51")
     ax1_twin.set_ylim(0, df_area["group_median_price"].max() * 1.2)
     ax1_twin.spines["right"].set_visible(True)
 
@@ -133,7 +133,7 @@ def plot_overpriced_analysis(df: pd.DataFrame, output_path: Path):
     x_room = np.arange(len(df_room))
     bars_room = ax2.bar(
         x_room, df_room["overpriced_rate_%"],
-        width=0.45, color=["#517ABD", "#DD8452"]
+        width=0.45, color=["#4C72B0", "#8FB3E0"]
     )
     ax2.set_xticks(x_room)
     ax2.set_xticklabels(df_room["room_type"])
@@ -466,7 +466,7 @@ def plot_professional_host_share(df: pd.DataFrame, output_path: str | Path):
     snapshots = sorted(df["snapshot"].unique())
     areas = sorted(df["analysis_area"].unique())
     tiers = ["individual", "small_multi", "professional"]
-    tier_colors = {"individual": "#8ECAE6", "small_multi": "#219EBC", "professional": "#023047"}
+    tier_colors = {"individual": "#8FB3E0", "small_multi": "#4C72B0", "professional": "#1B3B6F"}
 
     ncols = 2
     nrows = int(np.ceil(len(snapshots) / ncols))
@@ -525,15 +525,15 @@ def plot_review_concentration(df: pd.DataFrame, output_path: str | Path):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5.2), gridspec_kw={"width_ratios": [1.4, 1]})
     fig.suptitle("Review Volume and Distribution Trends by Area (2015–2025)", y=0.99)
 
-    # Biểu đồ trái:  Heatmap (hàng = khu vực, cột = năm)
-    mat = pivot_df[areas].T.to_numpy()            # shape: (số khu vực, số năm)
+    # Biểu đồ trái: Heatmap
+    mat = pivot_df[areas].T.to_numpy()
     vmax = float(mat.max()) if mat.size else 1.0
     im = ax1.imshow(mat, aspect="auto", cmap="YlGnBu", vmin=0, vmax=vmax)
 
     ax1.set_xticks(np.arange(len(years)))
     ax1.set_xticklabels([str(int(y)) for y in years])
     ax1.set_yticks(np.arange(len(areas)))
-    ax1.set_yticklabels(areas)                    
+    ax1.set_yticklabels(areas)
     ax1.set_xlabel("Year")
     ax1.set_ylabel("Area", fontweight="bold")
     ax1.set_title("Review Share Distribution by Area Over Time", fontweight="bold", pad=12)
@@ -550,8 +550,31 @@ def plot_review_concentration(df: pd.DataFrame, output_path: str | Path):
         sp.set_visible(False)
     ax1.tick_params(length=0)
 
+    # Biểu đồ phải: Bar chart chuyển sang xanh biển
     yearly_total = df[["year", "city_total_reviews"]].drop_duplicates().sort_values("year")
-    ax2.bar(yearly_total["year"].astype(str), yearly_total["city_total_reviews"], color="#3D405B", width=0.65)
+    bars = ax2.bar(
+        yearly_total["year"].astype(str),
+        yearly_total["city_total_reviews"],
+        color="#4C72B0",
+        width=0.65
+    )
+
+    max_val = yearly_total["city_total_reviews"].max()
+    ax2.set_ylim(0, max_val * 1.12)
+
+    for bar in bars:
+        h = bar.get_height()
+        ax2.text(
+            bar.get_x() + bar.get_width() / 2,
+            h + max_val * 0.015,
+            f"{int(h):,}",
+            ha="center",
+            va="bottom",
+            fontsize=8.5,
+            fontweight="bold",
+            color="#222222"
+        )
+
     ax2.set_ylabel("City Total Reviews")
     ax2.set_xlabel("Year")
     ax2.set_title("City Total Reviews")
@@ -576,10 +599,10 @@ def plot_revpar(df: pd.DataFrame, output_path: str | Path):
     y_top = float(np.ceil(max(df_area["revpar"].max(), df_room["revpar"].max()) * 1.1 / Y_STEP) * Y_STEP)
 
     x = np.arange(len(df_area))
-    bars = ax1.bar(x, df_area["revpar"], width=0.65, color="#2A9D8F", label="RevPAR ($)")
+    bars = ax1.bar(x, df_area["revpar"], width=0.65, color="#4C72B0", label="RevPAR ($)")
     ax1.set_xticks(x)
     ax1.set_xticklabels(df_area["analysis_area"])
-    ax1.set_ylabel("RevPAR ($)", color="#2A9D8F")
+    ax1.set_ylabel("RevPAR ($)", color="#4C72B0")
     ax1.set_ylim(0, y_top)
     ax1.set_title("RevPAR ($) & Occupancy Rate (%) by Area")
     ax1.grid(axis="y")
@@ -603,7 +626,7 @@ def plot_revpar(df: pd.DataFrame, output_path: str | Path):
     ax1.legend(h1 + h2, l1 + l2, loc="upper right", frameon=True)
 
     x_r = np.arange(len(df_room))
-    bars_r = ax2.bar(x_r, df_room["revpar"], width=0.45, color=["#4C72B0", "#DD8452"])
+    bars_r = ax2.bar(x_r, df_room["revpar"], width=0.45, color=["#4C72B0", "#8FB3E0"])
     ax2.set_xticks(x_r)
     ax2.set_xticklabels(df_room["room_type"])
     ax2.set_ylim(0, y_top)
