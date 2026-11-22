@@ -677,7 +677,7 @@ def plot_revpar(df: pd.DataFrame, output_path: str | Path):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14.5, 5.2), gridspec_kw={"width_ratios": [2.4, 1]})
     add_main_title(
     fig,
-    "A03 leads in RevPAR ($55.0) and occupancy (35%), while entire homes generate higher revenue than private rooms."
+    "A03 leads in RevPAR (€55.0) and occupancy (35%), while entire homes generate higher revenue than private rooms."
 )
     Y_STEP = 10
     y_top = float(np.ceil(max(df_area["revpar"].max(), df_room["revpar"].max()) * 1.1 / Y_STEP) * Y_STEP)
