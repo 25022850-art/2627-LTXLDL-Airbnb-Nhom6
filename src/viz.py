@@ -93,7 +93,7 @@ def plot_overpriced_analysis(df: pd.DataFrame, output_path: Path):
     fig, (ax1, ax2) = plt.subplots(
         1, 2, figsize=(14, 5.2), gridspec_kw={"width_ratios": [2.4, 1]}
     )
-    fig.suptitle("Overpriced Listings Rate, snapshot 23/06/2026", y=0.99)
+    fig.suptitle("Overpriced Listings Rate, Snapshot 2026-06-23", y=0.99)
 
     # --- BIỂU ĐỒ 1 (TRÁI): Combo Bar (Overpriced %) + Line (Median Price) theo Khu vực ---
     x = np.arange(len(df_area))
@@ -119,9 +119,9 @@ def plot_overpriced_analysis(df: pd.DataFrame, output_path: Path):
     ax1_twin = ax1.twinx()
     ax1_twin.plot(
         x, df_area["group_median_price"],
-        color="#E76F51", marker="o", label="Median Price ($)"
+        color="#E76F51", marker="o", label="Median Price (€)"
     )
-    ax1_twin.set_ylabel("Area Median Price ($)", color="#E76F51")
+    ax1_twin.set_ylabel("Area Median Price (€)", color="#E76F51")
     ax1_twin.set_ylim(0, df_area["group_median_price"].max() * 1.2)
     ax1_twin.spines["right"].set_visible(True)
 
@@ -145,17 +145,18 @@ def plot_overpriced_analysis(df: pd.DataFrame, output_path: Path):
         h = bar.get_height()
         ax2.text(
             bar.get_x() + bar.get_width() / 2, h + 0.6,
-            f"{h:.1f}%\n(Med: ${row['group_median_price']:.0f})\n(Listing Count: {int(row['overpriced_listings'])})",
+            f"{h:.1f}%\n(Med: €{row['group_median_price']:.0f})\n(Listing Count: {int(row['overpriced_listings'])})",
             ha="center", va="bottom", fontsize=8.5
         )
 
-    plt.tight_layout(rect=[0, 0.05, 1, 0.95])
+    plt.tight_layout(rect=[0, 0.06, 1, 0.95])
     fig.text(
         0.5, 0.012,
-        "Overpriced: Price ≥ 1,25 × Median Price by area and review_scores_value < 4,6. ",
+        "Note: Overpriced Rate = Overpriced / Premium listings (Price ≥ 1.25 × group median). "
+        "Overpriced: Premium listings with review_scores_value < 4.6.",
         ha="center", va="bottom", fontsize=9, style="italic", color="#555555"
     )
-    print(f"Đang lưu biểu đồ phân tích Overpriced vào: {output_path}")
+    # print(f"Đang lưu biểu đồ phân tích Overpriced vào: {output_path}")
     save_figure(fig, output_path)
 
 
@@ -599,19 +600,19 @@ def plot_revpar(df: pd.DataFrame, output_path: str | Path):
     y_top = float(np.ceil(max(df_area["revpar"].max(), df_room["revpar"].max()) * 1.1 / Y_STEP) * Y_STEP)
 
     x = np.arange(len(df_area))
-    bars = ax1.bar(x, df_area["revpar"], width=0.65, color="#4C72B0", label="RevPAR ($)")
+    bars = ax1.bar(x, df_area["revpar"], width=0.65, color="#4C72B0", label="RevPAR (€)")
     ax1.set_xticks(x)
     ax1.set_xticklabels(df_area["analysis_area"])
-    ax1.set_ylabel("RevPAR ($)", color="#4C72B0")
+    ax1.set_ylabel("RevPAR (€)", color="#4C72B0")
     ax1.set_ylim(0, y_top)
-    ax1.set_title("RevPAR ($) & Occupancy Rate (%) by Area")
+    ax1.set_title("RevPAR (€) & Occupancy Rate (%) by Area")
     ax1.grid(axis="y")
 
     for bar, (_, row) in zip(bars, df_area.iterrows()):
         h = bar.get_height()
         ax1.text(
             bar.get_x() + bar.get_width() / 2, y_top * 0.015,
-            f"${h:.1f}\n(ADR ${row['adr']:.0f})",
+            f"€{h:.1f}\n(ADR €{row['adr']:.0f})",
             ha="center", va="bottom", fontsize=8, color="white", fontweight="bold"
         )
 
@@ -638,7 +639,7 @@ def plot_revpar(df: pd.DataFrame, output_path: str | Path):
         h = bar.get_height()
         ax2.text(
             bar.get_x() + bar.get_width() / 2, h + 0.8,
-            f"${h:.2f}\n(ADR ${row['adr']:.0f} | Occ {row['occupancy_rate_%']:.1f}%)",
+            f"€{h:.2f}\n(ADR €{row['adr']:.0f} | Occ {row['occupancy_rate_%']:.1f}%)",
             ha="center", va="bottom", fontsize=8
         )
 
@@ -679,6 +680,16 @@ def plot_top_n_host_share(df: pd.DataFrame, output_path: str | Path):
     ax2.set_ylim(0, df["total_hosts"].max() * 1.25)
     ax2.spines["right"].set_visible(True)
 
+    for xi, val in zip(x, df["total_hosts"]):
+        ax2.annotate(
+            f"{int(val)}",
+            (xi, val),
+            textcoords="offset points",
+            xytext=(0, 8),
+            ha="center", va="bottom",
+            fontsize=9, color="#E76F51", fontweight="bold"
+        )
+        
     h1, l1 = ax1.get_legend_handles_labels()
     h2, l2 = ax2.get_legend_handles_labels()
     ax1.legend(h1 + h2, l1 + l2, loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=2, frameon=False)
