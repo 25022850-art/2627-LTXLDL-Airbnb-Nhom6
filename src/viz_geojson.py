@@ -535,7 +535,7 @@ def plot_label_distribution_area_geojson(
     - Bản đồ 1: General Sentiment — tỷ lệ nhãn Positive (%) (Greens, thang 85%–100% để tránh tương phản giả)
     - Bản đồ 2: Accessibility — tỷ lệ nhãn Highly accessible (%) (Blues, thang 85%–100%)
     - Bản đồ 3: Noise — tỷ lệ nhãn Quiet (%) (Purples)
-    Các vùng có mẫu nhỏ (n < 70) được phủ gạch chéo (///) kèm cảnh báo ⚠.
+    Các vùng có mẫu nhỏ (n < 70) được tô chữ đỏ, gắn cảnh báo ⚠ và phủ gạch chéo (///).
     """
     setup_map_style()
     df = df.copy()
@@ -575,7 +575,7 @@ def plot_label_distribution_area_geojson(
         ),
     ]
 
-    fig = plt.figure(figsize=(18.0, 9.3))
+    fig = plt.figure(figsize=(18.0, 9.6))
     gs = GridSpec(2, 3, figure=fig, height_ratios=[2.35, 1.15], hspace=0.14, wspace=0.08)
 
     snap_text = f" — Snapshot {snapshot_label}" if snapshot_label else ""
@@ -629,17 +629,27 @@ def plot_label_distribution_area_geojson(
             basemap_source=basemap_source,
         )
 
-    fig.subplots_adjust(left=0.02, right=0.98, top=0.90, bottom=0.11)
+    fig.subplots_adjust(left=0.02, right=0.98, top=0.90, bottom=0.12)
     fig.text(
         0.5,
-        0.015,
-        "Shares are computed within each analysis area over reviews mentioning the aspect ('Not mentioned' excluded). "
-        f"⚠ Hatched areas (///) indicate small sample (n < {SMALL_N}) — interpret with caution.",
+        0.036,
+        "Shares are computed within each analysis area over reviews mentioning the aspect ('Not mentioned' excluded).",
         ha="center",
         va="bottom",
         fontsize=9,
         style="italic",
         color="#555555",
+    )
+    fig.text(
+        0.5,
+        0.010,
+        f"⚠ Red labels & hatched areas (///) indicate small sample size (n < {SMALL_N}).",
+        ha="center",
+        va="bottom",
+        fontsize=9.2,
+        fontweight="bold",
+        style="italic",
+        color="#B00020",
     )
     print(f"Đang lưu bản đồ GeoJSON Phân bố nhãn theo Area vào: {output_path}")
     save_figure(fig, output_path)
