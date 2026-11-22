@@ -9,7 +9,7 @@ try:
         calculate_dormant_listing_rate_over_time,
         calculate_overpriced_rate,
         calculate_revpar_single_snapshot,
-        calculate_professional_host_share_over_time,
+        calculate_host_share_over_time,
         calculate_top_n_host_share_over_time,
         calculate_unavailability_rate,
         label_distribution_area,
@@ -24,7 +24,7 @@ except ImportError:
         calculate_dormant_listing_rate_over_time,
         calculate_overpriced_rate,
         calculate_revpar_single_snapshot,
-        calculate_professional_host_share_over_time,
+        calculate_host_share_over_time,
         calculate_top_n_host_share_over_time,
         calculate_unavailability_rate,
         label_distribution_area,
@@ -107,11 +107,11 @@ def exec_kpi():
     )
 
     # 5. KPI Professional Host Share (chuỗi thời gian qua các snapshot)
-    pro_host_share_df = calculate_professional_host_share_over_time(
+    pro_host_share_df = calculate_host_share_over_time(
         config_path=CONFIG_PATH,
         **kpi_cfg["professional_host"],
         latest_only=False,
-        output_path=OUTPUT_DIR / "kpi_professional_host_share.csv",
+        output_path=OUTPUT_DIR / "kpi_host_share.csv",
     )
 
     # 6. KPI Top N Host Share (toàn thành phố theo các mốc snapshot)

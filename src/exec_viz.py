@@ -70,9 +70,9 @@ def exec_viz():
     label_output_path = output_folder / "label_distribution_area.png"
     plot_label_distribution(label_df, label_output_path)
 
-    prof_host_csv = csv_folder / "kpi_professional_host_share.csv"
+    prof_host_csv = csv_folder / "kpi_host_share.csv"
     prof_host_df = csv_to_df(prof_host_csv)
-    prof_host_output_path = output_folder / "professional_host_share.png"
+    prof_host_output_path = output_folder / "host_share.png"
     plot_professional_host_share(prof_host_df, prof_host_output_path)
 
     review_conc_csv = csv_folder / "kpi_review_concentration.csv"

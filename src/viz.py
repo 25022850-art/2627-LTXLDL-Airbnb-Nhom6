@@ -509,7 +509,6 @@ def plot_review_concentration(df: pd.DataFrame, output_path: str | Path):
     pivot_df = df.pivot(index="year", columns="analysis_area", values="concentration_pct").fillna(0).sort_index()
     years = pivot_df.index.to_numpy()
     areas = sorted(pivot_df.columns.tolist())
-    cmap = plt.get_cmap("tab10")
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5.2), gridspec_kw={"width_ratios": [1.4, 1]})
     fig.suptitle(
@@ -517,19 +516,30 @@ def plot_review_concentration(df: pd.DataFrame, output_path: str | Path):
         fontsize=13, fontweight="bold", y=0.99
     )
 
-    # Biểu đồ trái: Stacked Area thể hiện tỷ trọng tập trung theo năm
-    stacks = [pivot_df[a].to_numpy() for a in areas]
-    ax1.stackplot(years, stacks, labels=areas, colors=[cmap(i % 10) for i in range(len(areas))], alpha=0.88)
-    ax1.set_ylim(0, 100)
-    ax1.set_xlim(years.min(), years.max())
-    ax1.set_ylabel("Review Concentration (%)", fontweight="bold")
+    # Biểu đồ trái:  Heatmap (hàng = khu vực, cột = năm)
+    mat = pivot_df[areas].T.to_numpy()            # shape: (số khu vực, số năm)
+    vmax = float(mat.max()) if mat.size else 1.0
+    im = ax1.imshow(mat, aspect="auto", cmap="YlGnBu", vmin=0, vmax=vmax)
+
+    ax1.set_xticks(np.arange(len(years)))
+    ax1.set_xticklabels([str(int(y)) for y in years])
+    ax1.set_yticks(np.arange(len(areas)))
+    ax1.set_yticklabels(areas)                    
     ax1.set_xlabel("Year")
+    ax1.set_ylabel("Area", fontweight="bold")
     ax1.set_title("Review Share Distribution by Area Over Time", fontweight="bold", pad=12)
 
-    h_leg, l_leg = ax1.get_legend_handles_labels()
-    ax1.legend(h_leg[::-1], l_leg[::-1], title="Area", bbox_to_anchor=(1.01, 1), loc="upper left", fontsize=8.5)
-    ax1.spines["top"].set_visible(False)
-    ax1.spines["right"].set_visible(False)
+    for i in range(mat.shape[0]):
+        for j in range(mat.shape[1]):
+            v = mat[i, j]
+            ax1.text(j, i, f"{v:.0f}", ha="center", va="center", fontsize=8.5,
+                     color="white" if v > vmax * 0.55 else "#222222")
+
+    cbar = fig.colorbar(im, ax=ax1, pad=0.02, fraction=0.04)
+    cbar.set_label("Review Share (%)", fontweight="bold")
+    for sp in ax1.spines.values():
+        sp.set_visible(False)
+    ax1.tick_params(length=0)
 
     # Biểu đồ phải: Tổng số review toàn thành phố qua các năm
     yearly_total = df[["year", "city_total_reviews"]].drop_duplicates().sort_values("year")
@@ -547,6 +557,7 @@ def plot_review_concentration(df: pd.DataFrame, output_path: str | Path):
     out.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(out, dpi=300, bbox_inches="tight")
     plt.close(fig)
+
 
 
 def plot_revpar(df: pd.DataFrame, output_path: str | Path):

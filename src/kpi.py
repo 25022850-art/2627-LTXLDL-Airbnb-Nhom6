@@ -211,7 +211,7 @@ def calculate_revpar_single_snapshot(
     return kpi_df
 
 
-def calculate_professional_host_share_single_snapshot(listings_df, snapshot=None, pro_threshold=10):
+def calculate_host_share_single_snapshot(listings_df, snapshot=None, pro_threshold=10):
 
     df = listings_df.copy()
 
@@ -240,7 +240,7 @@ def calculate_professional_host_share_single_snapshot(listings_df, snapshot=None
     return kpi_df
 
 
-def calculate_professional_host_share_over_time(
+def calculate_host_share_over_time(
     config_path,
     pro_threshold=10,
     latest_only=False,
@@ -256,7 +256,7 @@ def calculate_professional_host_share_over_time(
     all_results = []
     for date in snapshots:
         listings_df = _read_processed_listings(date, usecols=cols)
-        all_results.append(calculate_professional_host_share_single_snapshot(
+        all_results.append(calculate_host_share_single_snapshot(
             listings_df, snapshot=date, pro_threshold=pro_threshold))
 
     final_kpi = pd.concat(all_results, ignore_index=True)
