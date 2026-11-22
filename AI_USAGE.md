@@ -51,3 +51,9 @@
     - Dùng vào việc: Hỗ trợ viết file vẽ biểu đồ (viz.py, viz_geojson.py)
     - AI sai ở đâu: Tiêu đề biểu đồ, dùng sai loại biểu đồ, dùng màu lẫn lộn, không hợp lý.
     - Kiểm chứng: Kiểm tra figures đầu ra và tinh chỉnh lại nếu cần.
+
+10. Lần 10:
+    - Công cụ: Gemini
+    - Dùng vào việc: Hỗ trợ viết báo cáo
+    - AI sai ở đâu: Kết luận không hợp lý với dữ liệu, đưa ra diễn giải không liên quan.
+    - Kiểm chứng: Đọc lại file báo cáo và chỉnh sửa.
