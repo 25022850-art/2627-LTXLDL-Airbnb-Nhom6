@@ -470,7 +470,7 @@ def plot_revpar_geojson(
 
     snap_text = f" — Snapshot {snapshot_label}" if snapshot_label else ""
     fig.suptitle(
-        f"Porto Revenue Performance by Analysis Area (ADR, Occupancy & RevPAR){snap_text}",
+        f"A03 Leads in RevPAR (€55.0) and Occupancy (34.7%), While A01 Records the Highest ADR (€178).",
         y=0.97,
     )
 
@@ -580,7 +580,7 @@ def plot_label_distribution_area_geojson(
 
     snap_text = f" — Snapshot {snapshot_label}" if snapshot_label else ""
     fig.suptitle(
-        f"Review Sentiment & Experience Aspect Distribution by Analysis Area{snap_text}",
+        f"Positive Sentiment Exceeds 92% Across All Areas, While Noise Experiences Show Greater Regional Variation.",
         y=0.97,
     )
 
